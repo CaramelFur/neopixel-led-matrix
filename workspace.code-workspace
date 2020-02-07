@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"name": "200202-142837-d1_mini",
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.tcc": "cpp",
+			"fstream": "cpp",
+			"limits": "cpp",
+			"array": "cpp",
+			"functional": "cpp",
+			"istream": "cpp",
+			"tuple": "cpp",
+			"utility": "cpp"
+		}
+	}
+}

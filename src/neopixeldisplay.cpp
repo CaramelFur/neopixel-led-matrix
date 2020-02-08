@@ -1,3 +1,5 @@
+#include "Arduino.h"
+
 #include "allSettings.h"
 #include "halt.h"
 #include "print.h"
@@ -46,7 +48,7 @@ void loop()
 
   do
   {
-    while (!selectNextFrame())
+    do 
     {
       UpdateDisplay();
 
@@ -54,9 +56,9 @@ void loop()
       {
         delay(1);
       }
-
+      
       frameFinishAt = millis() + millisPerFrame;
-    }
+    } while (!selectNextFrame());
   } while (finishAt > millis());
 
   selectNextDirectory(config->random);

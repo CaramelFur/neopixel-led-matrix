@@ -66,7 +66,8 @@ bool selectNextFrame(char *fileNameList[], FileCountUInt fileNameListLength, Fil
     subFileNamesLength = listAllFiles(subFileNames, currentFile, &currentSubFileHolder, false);
     Serial.println("Listed subfiles");
     currentSubFileNameIndex = -1;
-    return selectNextFrame();
+    selectNextFrame();
+    return isEnd;
   }
 
   readBmp(currentFile);
@@ -110,7 +111,7 @@ FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *cur
   while (currentFile->openNext(currentDir, O_RDONLY))
   {
     isFileBuffer = currentFile->isFile();
-    if (!currentFile->getSFN(fileNameList[fileCount]))
+    if (!currentFile->getName(fileNameList[fileCount], MaxFileNameLength))
       halt("Could not get file name");
     if (!currentFile->close())
       halt("Could not close file while listing");

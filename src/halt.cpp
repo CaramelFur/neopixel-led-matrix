@@ -6,20 +6,9 @@ Better_NeoMatrix *errorDisplay = 0;
 
 void printToDisplay(String message, bool onlyOnce)
 {
-  uint32_t fullLengthInPixels = message.length() * (dispCharWidth + 1);
-  uint32_t i;
   do
   {
-    for (i = 0; i < fullLengthInPixels; i++)
-    {
-      errorDisplay->setCursor(-i, textYPos);
-      errorDisplay->clear();
-      errorDisplay->print(message);
-      errorDisplay->show();
-      delay(scrollSpeed);
-      if (i == 0)
-        delay(500);
-    }
+    errorDisplay->scrollText(message.begin(), message.length());
   } while (!onlyOnce);
 }
 

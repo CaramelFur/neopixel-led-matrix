@@ -1,6 +1,8 @@
 #include "Arduino.h"
 #include <Adafruit_NeoMatrix.h>
 
+#include "allSettings.h"
+
 #pragma once
 
 class Better_NeoMatrix : public Adafruit_NeoMatrix
@@ -15,4 +17,6 @@ public:
   uint16_t getPixelsLength();
 
   void drawRGBPixel(int16_t x, int16_t y, uint8_t r, uint8_t g, uint8_t b);
+
+  void scrollText(char *text, uint16_t length, uint8_t speed = 50);
 };

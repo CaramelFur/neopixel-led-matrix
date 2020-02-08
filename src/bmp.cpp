@@ -123,7 +123,7 @@ void readBmp(SdFile *bmpFile)
     halt("Incorrect color plane in header: " + String(imageHeader.color_planes));
 
   if (imageHeader.compression_method != 0)
-    halt("Please use uncompressed bmps");
+    halt("Please use uncompressed bmps: " + getFileName(bmpFile));
 
   if (imageHeader.bits_per_pixel != 4 && imageHeader.bits_per_pixel != 8 && imageHeader.bits_per_pixel != 24)
     halt("Please use a bit depth of 4, 8 or 24, and not: " + String(imageHeader.bits_per_pixel));

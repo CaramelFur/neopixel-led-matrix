@@ -40,21 +40,24 @@ void setup()
 void loop()
 {
   finishAt = millis() + animConfig->length * 1000;
+  frameFinishAt = millis() + millisPerFrame;
 
   millisPerFrame = 1000 / animConfig->fps;
 
-  while (finishAt > millis())
+  do
   {
-    frameFinishAt = millis() + millisPerFrame;
+    while (!selectNextFrame())
+    {
+      UpdateDisplay();
 
-    Serial.println("req frame");
-    selectNextFrame();
-    UpdateDisplay();
+      while (frameFinishAt > millis())
+      {
+        delay(1);
+      }
 
-    while(frameFinishAt > millis()){
-      delay(1);
+      frameFinishAt = millis() + millisPerFrame;
     }
-  }
+  } while (finishAt > millis());
 
   selectNextDirectory(config->random);
 }

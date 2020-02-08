@@ -10,14 +10,14 @@
 
 #pragma once
 
-typedef uint16_t FileCountUInt;
+typedef uint8_t FileCountUInt;
 
 void initSD();
 
-void selectNextFrame();
+bool selectNextFrame();
 void selectNextDirectory(bool doRandom);
 
-static const FileCountUInt MaxFilesInFolder = 30;
-static const FileCountUInt MaxFolders = 200;
+static const FileCountUInt MaxFilesInFolder = 255;
+static const FileCountUInt MaxFolders = 255;
 
 static const uint8_t MaxFileNameLength = 13;

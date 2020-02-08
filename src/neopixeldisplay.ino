@@ -47,6 +47,7 @@ void loop()
   {
     frameFinishAt = millis() + millisPerFrame;
 
+    Serial.println("req frame");
     selectNextFrame();
     UpdateDisplay();
 

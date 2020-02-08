@@ -5,6 +5,7 @@ static SdFat sd;
 
 static SdFile rootDirHolder;
 static SdFile currentDirHolder;
+static SdFile currentSubFileHolder;
 static SdFile currentFileHolder;
 
 static FileCountUInt currentFolderIndexesIndex = 0;
@@ -14,6 +15,12 @@ static uint16_t folderIndexes[MaxFolders] = {};
 static FileCountUInt currentFileNameIndex = 0;
 static FileCountUInt fileNamesLength = 0;
 static char *fileNames[MaxFilesInFolder] = {};
+
+static FileCountUInt currentSubFileNameIndex = 0;
+static FileCountUInt subFileNamesLength = 0;
+static char *subFileNames[MaxFilesInFolder] = {};
+
+FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *currentFile, bool allowFolders = true);
 
 bool isHiddenChar(char toTest)
 {
@@ -25,8 +32,9 @@ bool isHiddenChar(char toTest)
   return false;
 }
 
-void selectNextFrame(char *fileNameList[], FileCountUInt fileNameListLength, FileCountUInt *currentIndex, SdFile *currentDir, SdFile *currentFile)
+bool selectNextFrame(char *fileNameList[], FileCountUInt fileNameListLength, FileCountUInt *currentIndex, SdFile *currentDir, SdFile *currentFile, bool stopOnLast = false)
 {
+  bool isEnd = false;
   if (currentFile->isOpen())
   {
     if (!currentFile->close())
@@ -35,25 +43,56 @@ void selectNextFrame(char *fileNameList[], FileCountUInt fileNameListLength, Fil
     }
   }
 
+  Serial.print("Opening frame from: ");
+  currentDir->printName();
+  Serial.println();
+
   *currentIndex = *currentIndex + 1;
   if (*currentIndex == fileNameListLength)
+  {
     *currentIndex = 0;
+    isEnd = true;
+    if (stopOnLast)
+      return isEnd;
+  }
 
   if (!currentFile->open(currentDir, fileNameList[*currentIndex], O_RDONLY))
   {
     halt("Could not open next frame in dir: " + getFileName(currentDir));
   }
 
-  return readBmp(currentFile);
+  if (currentFile->isDir())
+  {
+    subFileNamesLength = listAllFiles(subFileNames, currentFile, &currentSubFileHolder, false);
+    Serial.println("Listed subfiles");
+    currentSubFileNameIndex = -1;
+    return selectNextFrame();
+  }
+
+  readBmp(currentFile);
+  return isEnd;
 }
 
-void selectNextFrame()
+bool selectNextFrame()
 {
-  return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder);
+  if (currentFileHolder.isDir())
+  {
+    
+    if (selectNextFrame(subFileNames, subFileNamesLength, &currentSubFileNameIndex, &currentFileHolder, &currentSubFileHolder, true))
+    {
+      Serial.println("reached end");
+      return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder);
+    }
+  }
+  else
+  {
+    return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder);
+  }
 }
 
-FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *currentFile)
+FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *currentFile, bool allowFolders)
 {
+  Serial.println("Listing subfiles");
   if (!currentDir->isOpen())
     halt("Tried to read frame but no directory is open");
 
@@ -78,8 +117,8 @@ FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *cur
 
     if (isHiddenChar(fileNameList[fileCount][0]))
       continue;
-
-    if (!isFileBuffer)
+      
+    if (!allowFolders && !isFileBuffer)
       halt("Please only store images in the folder: " + getFileName(currentDir));
 
     if (fileCount == MaxFilesInFolder - 1)
@@ -106,13 +145,29 @@ FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *cur
   return fileCount;
 }
 
-void selectNextDirectory(uint16 folderIndexList[], FileCountUInt folderIndexListLength, FileCountUInt *currentIndexListIndex, SdFile *rootDir, SdFile *currentDir, SdFile *currentFile)
+void selectNextDirectory(uint16 folderIndexList[], FileCountUInt folderIndexListLength, FileCountUInt *currentIndexListIndex, SdFile *rootDir, SdFile *currentDir, SdFile *currentFile, SdFile *currentSubFile)
 {
   if (currentDir->isOpen())
   {
     if (!currentDir->close())
     {
       halt("Could not close current dir: " + getFileName(currentDir));
+    }
+  }
+
+  if (currentFile->isOpen())
+  {
+    if (!currentFile->close())
+    {
+      halt("Could not close current file: " + getFileName(currentFile));
+    }
+  }
+
+  if (currentSubFile->isOpen())
+  {
+    if (!currentSubFile->close())
+    {
+      halt("Could not close current subfile: " + getFileName(currentSubFile));
     }
   }
 
@@ -130,14 +185,14 @@ void selectNextDirectory(uint16 folderIndexList[], FileCountUInt folderIndexList
   Serial.println();
 
   fileNamesLength = listAllFiles(fileNames, currentDir, currentFile);
-  currentFileNameIndex = fileNamesLength - 1;
+  currentFileNameIndex = -1;
 
   if (!readConfigFile(currentDir, ConfigType::animation))
   {
     Serial.println("Couldn't find config file, using defaults");
   }
 
-  return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, currentDir, currentFile);
+  selectNextFrame();
 }
 
 FileCountUInt listAllFolders(uint16_t folderIndexList[], SdFile *rootDir, SdFile *currentFolder)
@@ -195,10 +250,6 @@ void selectNextDirectory(bool doRandom = false)
   {
     FileCountUInt newIndex = rand() % folderIndexesLength;
 
-    Serial.println("oi");
-    Serial.println(currentFolderIndexesIndex);
-    Serial.println(newIndex);
-
     if (currentFolderIndexesIndex == newIndex + 1)
     {
       newIndex -= 1;
@@ -206,7 +257,7 @@ void selectNextDirectory(bool doRandom = false)
 
     currentFolderIndexesIndex = newIndex;
   }
-  return selectNextDirectory(folderIndexes, folderIndexesLength, &currentFolderIndexesIndex, &rootDirHolder, &currentDirHolder, &currentFileHolder);
+  return selectNextDirectory(folderIndexes, folderIndexesLength, &currentFolderIndexesIndex, &rootDirHolder, &currentDirHolder, &currentFileHolder, &currentSubFileHolder);
 }
 
 void initSDVariables()
@@ -215,6 +266,10 @@ void initSDVariables()
   for (i = 0; i < MaxFilesInFolder; i++)
   {
     fileNames[i] = new char[MaxFileNameLength];
+  }
+  for (i = 0; i < MaxFilesInFolder; i++)
+  {
+    subFileNames[i] = new char[MaxFileNameLength];
   }
 }
 
@@ -240,7 +295,7 @@ void initSD()
   rootDirHolder.rewind();
 
   folderIndexesLength = listAllFolders(folderIndexes, &rootDirHolder, &currentDirHolder);
-  currentFolderIndexesIndex = fileNamesLength - 1;
+  currentFolderIndexesIndex = -1;
 
   selectNextDirectory();
 }

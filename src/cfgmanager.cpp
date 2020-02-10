@@ -1,5 +1,7 @@
 #include "cfgmanager.h"
 
+const char *configFileName = "_config"; // Must start with hiddenChar to not crash
+
 const uint8_t tempReaderLength = 20;
 static char tempReader[tempReaderLength] = {};
 

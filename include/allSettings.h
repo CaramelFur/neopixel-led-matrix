@@ -14,6 +14,6 @@ static const bool IsGRB = true;
 static const uint8_t hiddenCharsLen = 2;
 static const char hiddenChars[hiddenCharsLen] = {'_', '.'};
 
-static const char *configFileName = "_config"; // Must start with hiddenChar to not crash
+extern const char *configFileName; 
 
 extern const uint16_t textYPos;

@@ -89,6 +89,7 @@ bool selectNextFrame()
   {
     return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder);
   }
+  return false;
 }
 
 FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *currentFile, bool allowFolders)

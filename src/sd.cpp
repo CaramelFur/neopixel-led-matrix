@@ -1,5 +1,12 @@
 #include "sd.h"
 
+static void initSDVariables();
+static bool isHiddenChar(char toTest);
+static FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *currentFile, bool allowFolders = true);
+static void selectNextDirectory(uint16 folderIndexList[], FileCountUInt folderIndexListLength, FileCountUInt *currentIndexListIndex, SdFile *rootDir, SdFile *currentDir, SdFile *currentFile, SdFile *currentSubFile);
+static FileCountUInt listAllFolders(uint16_t folderIndexList[], SdFile *rootDir, SdFile *currentFolder);
+static bool selectNextFrame(char *fileNameList[], FileCountUInt fileNameListLength, FileCountUInt *currentIndex, SdFile *currentDir, SdFile *currentFile, bool stopOnLast = false);
+
 // Sd holders
 static SdFat sd;
 
@@ -20,19 +27,52 @@ static FileCountUInt currentSubFileNameIndex = 0;
 static FileCountUInt subFileNamesLength = 0;
 static char *subFileNames[MaxFilesInFolder] = {};
 
-FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *currentFile, bool allowFolders = true);
-
-bool isHiddenChar(char toTest)
+void initSD()
 {
-  for (uint8_t i = 0; i < hiddenCharsLen; i++)
+  initSDVariables();
+
+  while (!sd.begin(SS, SD_SCK_MHZ(50)))
   {
-    if (hiddenChars[i] == toTest)
-      return true;
+    halt("Could not initialize the sd", true);
+  }
+
+  if (!rootDirHolder.open("/"))
+  {
+    halt("Could not open the sd root");
+  }
+
+  if (!readConfigFile(&rootDirHolder, ConfigType::main))
+  {
+    Serial.println("Could not find main config file, using defaults");
+  }
+
+  rootDirHolder.rewind();
+
+  folderIndexesLength = listAllFolders(folderIndexes, &rootDirHolder, &currentDirHolder);
+  currentFolderIndexesIndex = -1;
+
+  selectNextDirectory();
+}
+
+bool selectNextFrame()
+{
+  if (currentFileHolder.isDir())
+  {
+    
+    if (selectNextFrame(subFileNames, subFileNamesLength, &currentSubFileNameIndex, &currentFileHolder, &currentSubFileHolder, true))
+    {
+      Serial.println("reached end");
+      return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder);
+    }
+  }
+  else
+  {
+    return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder);
   }
   return false;
 }
 
-bool selectNextFrame(char *fileNameList[], FileCountUInt fileNameListLength, FileCountUInt *currentIndex, SdFile *currentDir, SdFile *currentFile, bool stopOnLast = false)
+static bool selectNextFrame(char *fileNameList[], FileCountUInt fileNameListLength, FileCountUInt *currentIndex, SdFile *currentDir, SdFile *currentFile, bool stopOnLast)
 {
   bool isEnd = false;
   if (currentFile->isOpen())
@@ -74,27 +114,8 @@ bool selectNextFrame(char *fileNameList[], FileCountUInt fileNameListLength, Fil
   return isEnd;
 }
 
-bool selectNextFrame()
+static FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *currentFile, bool allowFolders)
 {
-  if (currentFileHolder.isDir())
-  {
-    
-    if (selectNextFrame(subFileNames, subFileNamesLength, &currentSubFileNameIndex, &currentFileHolder, &currentSubFileHolder, true))
-    {
-      Serial.println("reached end");
-      return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder);
-    }
-  }
-  else
-  {
-    return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder);
-  }
-  return false;
-}
-
-FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *currentFile, bool allowFolders)
-{
-  Serial.println("Listing subfiles");
   if (!currentDir->isOpen())
     halt("Tried to read frame but no directory is open");
 
@@ -147,7 +168,23 @@ FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *cur
   return fileCount;
 }
 
-void selectNextDirectory(uint16 folderIndexList[], FileCountUInt folderIndexListLength, FileCountUInt *currentIndexListIndex, SdFile *rootDir, SdFile *currentDir, SdFile *currentFile, SdFile *currentSubFile)
+void selectNextDirectory(bool doRandom)
+{
+  if (doRandom)
+  {
+    FileCountUInt newIndex = rand() % folderIndexesLength;
+
+    if (currentFolderIndexesIndex == newIndex + 1)
+    {
+      newIndex -= 1;
+    }
+
+    currentFolderIndexesIndex = newIndex;
+  }
+  return selectNextDirectory(folderIndexes, folderIndexesLength, &currentFolderIndexesIndex, &rootDirHolder, &currentDirHolder, &currentFileHolder, &currentSubFileHolder);
+}
+
+static void selectNextDirectory(uint16 folderIndexList[], FileCountUInt folderIndexListLength, FileCountUInt *currentIndexListIndex, SdFile *rootDir, SdFile *currentDir, SdFile *currentFile, SdFile *currentSubFile)
 {
   if (currentDir->isOpen())
   {
@@ -197,7 +234,7 @@ void selectNextDirectory(uint16 folderIndexList[], FileCountUInt folderIndexList
   selectNextFrame();
 }
 
-FileCountUInt listAllFolders(uint16_t folderIndexList[], SdFile *rootDir, SdFile *currentFolder)
+static FileCountUInt listAllFolders(uint16_t folderIndexList[], SdFile *rootDir, SdFile *currentFolder)
 {
   if (!rootDir->isOpen())
     halt("Tried to folder from unopened root");
@@ -246,23 +283,7 @@ FileCountUInt listAllFolders(uint16_t folderIndexList[], SdFile *rootDir, SdFile
   return folderCount;
 }
 
-void selectNextDirectory(bool doRandom = false)
-{
-  if (doRandom)
-  {
-    FileCountUInt newIndex = rand() % folderIndexesLength;
-
-    if (currentFolderIndexesIndex == newIndex + 1)
-    {
-      newIndex -= 1;
-    }
-
-    currentFolderIndexesIndex = newIndex;
-  }
-  return selectNextDirectory(folderIndexes, folderIndexesLength, &currentFolderIndexesIndex, &rootDirHolder, &currentDirHolder, &currentFileHolder, &currentSubFileHolder);
-}
-
-void initSDVariables()
+static void initSDVariables()
 {
   FileCountUInt i;
   for (i = 0; i < MaxFilesInFolder; i++)
@@ -275,29 +296,12 @@ void initSDVariables()
   }
 }
 
-void initSD()
+static bool isHiddenChar(char toTest)
 {
-  initSDVariables();
-
-  while (!sd.begin(SS, SD_SCK_MHZ(50)))
+  for (uint8_t i = 0; i < hiddenCharsLen; i++)
   {
-    halt("Could not initialize the sd", true);
+    if (hiddenChars[i] == toTest)
+      return true;
   }
-
-  if (!rootDirHolder.open("/"))
-  {
-    halt("Could not open the sd root");
-  }
-
-  if (!readConfigFile(&rootDirHolder, ConfigType::main))
-  {
-    Serial.println("Could not find main config file, using defaults");
-  }
-
-  rootDirHolder.rewind();
-
-  folderIndexesLength = listAllFolders(folderIndexes, &rootDirHolder, &currentDirHolder);
-  currentFolderIndexesIndex = -1;
-
-  selectNextDirectory();
+  return false;
 }

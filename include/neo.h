@@ -24,4 +24,4 @@ void SetDisplayBrightness(uint8_t brightness);
 
 void TestDisplay();
 
-void UpdateDisplay();
+void ShowDisplayUpdates();

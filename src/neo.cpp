@@ -53,7 +53,7 @@ void SetDisplayBrightness(uint8_t brightness)
   matrix.setBrightness(brightness);
 }
 
-void UpdateDisplay()
+void ShowDisplayUpdates()
 {
   matrix.show();
   matrix.clear();

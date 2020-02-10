@@ -21,17 +21,12 @@ void setup()
   Serial.println("Hello There");
 
   Better_NeoMatrix *mtrx = InitDisplay();
-
   setHaltDisplay(mtrx);
-
   InitBmp(mtrx);
-
   initSD();
 
   config = getMainConfig();
   animConfig = getAnimConfig();
-
-  Serial.println((*config).brightness);
 
   SetDisplayBrightness(config->brightness);
 
@@ -50,7 +45,7 @@ void loop()
   {
     do 
     {
-      UpdateDisplay();
+      ShowDisplayUpdates();
 
       while (frameFinishAt > millis())
       {

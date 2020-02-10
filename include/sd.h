@@ -12,12 +12,12 @@
 
 typedef uint8_t FileCountUInt;
 
-void initSD();
-
-bool selectNextFrame();
-void selectNextDirectory(bool doRandom);
-
 static const FileCountUInt MaxFilesInFolder = 255;
 static const FileCountUInt MaxFolders = 255;
 
 static const uint8_t MaxFileNameLength = 13;
+
+void initSD();
+
+bool selectNextFrame();
+void selectNextDirectory(bool doRandom = false);

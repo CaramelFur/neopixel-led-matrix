@@ -1,29 +1,46 @@
 #include "Arduino.h"
 #include "SdFat.h"
 #include "allSettings.h"
-#include "halt.h"
 #include "filefuncs.h"
 
 #pragma once
 
-struct ConfigHolder {
-  uint16_t brightness;
-  uint16_t random;
-  uint16_t testMode;
-};
+typedef uint16_t ConfigUINT;
 
-struct AnimConfigHolder {
-  uint16_t fps;
-  uint16_t length;
-};
+namespace ConfigManager {
+  enum CFGStatus {
+    success,
+    verbose_no_config_present,  // There was no config file, so the defaults were used (not critical at all)
+    error_invalid_config,       // Encountered invalid config file
+    error_invalid_config_type,  // An invalid config type was passed
+    error_config_no_open,       // Could not open the config file
+    error_config_no_close,      // Could not close the config file
+  };
 
-enum ConfigType {
-  main,
-  animation
-};
+  enum ConfigType { main, animation };
 
-bool readConfigFile(SdFile *directory, ConfigType type);
+  struct ConfigHolder {
+    ConfigUINT brightness;
+    ConfigUINT random;
+    ConfigUINT testMode;
+  };
 
-ConfigHolder* getMainConfig();
+  struct AnimConfigHolder {
+    ConfigUINT fps;
+    ConfigUINT length;
+  };
 
-AnimConfigHolder* getAnimConfig();
+  struct VariableLocationStatus {
+    CFGStatus status;
+    ConfigUINT* location;
+  };
+
+  namespace __internal {
+    bool readFileUntil(SdFile* file, char* buf, uint8_t length, char delimiter);
+  }
+
+  ConfigHolder* getMainConfig();
+  AnimConfigHolder* getAnimConfig();
+
+  CFGStatus readConfigFile(SdFile* directory, ConfigType type);
+}  // namespace ConfigManager

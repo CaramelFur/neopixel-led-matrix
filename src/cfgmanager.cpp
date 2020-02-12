@@ -1,117 +1,129 @@
 #include "cfgmanager.h"
 
-const char *configFileName = "_config"; // Must start with hiddenChar to not crash
+// Must start with hiddenChar to not crash
 
-const uint8_t tempReaderLength = 20;
-static char tempReader[tempReaderLength] = {};
+namespace ConfigManager {
+  namespace __internal {
+    const char* configFileName = "_config";
 
-static SdFile configFile;
+    const uint8_t tempReaderLength = 20;
 
-const ConfigHolder defaultConfig = {
-    .brightness = 50,
-    .random = 0,
-    .testMode = 0,
-};
+    const ConfigHolder defaultConfig = {
+        .brightness = 50,
+        .random = 0,
+        .testMode = 0,
+    };
 
-const AnimConfigHolder defaultAnimConfig = {
-    .fps = 2,
-    .length = 10,
-};
+    const AnimConfigHolder defaultAnimConfig = {
+        .fps = 2,
+        .length = 10,
+    };
 
-static ConfigHolder config = defaultConfig;
+    char tempReader[tempReaderLength] = {};
 
-static AnimConfigHolder animConfig = defaultAnimConfig;
+    SdFile configFile;
 
-ConfigHolder *getMainConfig()
-{
-  return &config;
-}
+    ConfigHolder config = defaultConfig;
+    AnimConfigHolder animConfig = defaultAnimConfig;
 
-AnimConfigHolder *getAnimConfig()
-{
-  return &animConfig;
-}
+    bool readFileUntil(SdFile* file, char* buf, uint8_t length, char delimiter) {
+      uint8_t currentCharPos = 0;
 
-bool readFileUntil(SdFile *file, char *buf, uint8_t length, char delimiter)
-{
-  uint8_t i = 0;
-  while (i != length)
-  {
-    if (!file->read(&buf[i], 1))
-      break;
-    if (buf[i] == delimiter || (delimiter == '\n' ? buf[i] == '\r' : false))
-    {
-      if (buf[i] == '\r' && file->peek() == '\n')
-        file->read();
-      buf[i] = '\0';
-      return true;
+      // Keep going as long as we dont go outside of the buffer
+      while (currentCharPos != length) {
+        if (!file->read(&buf[currentCharPos], 1)) {
+          // Quit if it reaches the end of the file
+          break;
+        }
+
+        if (buf[currentCharPos] == delimiter ||                        // If the current Char is the deliter stop
+            (delimiter == '\n' ? buf[currentCharPos] == '\r' : false)  // If the delimiter is \n also check for \r
+        ) {
+          // If the current \r is surpassed by a \n process that too
+          if (buf[currentCharPos] == '\r' && file->peek() == '\n') {
+            file->read();
+          }
+
+          // End the string with a null character and return
+          buf[currentCharPos] = '\0';
+          return true;
+        }
+        currentCharPos++;
+      }
+      return false;
     }
-    i++;
+
+    VariableLocationStatus getVariableLocation(char* name, ConfigType type) {
+      VariableLocationStatus out = {CFGStatus::success, 0};
+
+      switch (type) {
+        case ConfigType::main:
+          if (strcmp(name, "bri") == 0)
+            out.location = &config.brightness;
+          else if (strcmp(name, "rnd") == 0)
+            out.location = &config.random;
+          else if (strcmp(name, "tst") == 0)
+            out.location = &config.testMode;
+          else
+            out.status = CFGStatus::error_invalid_config;
+          break;
+        case ConfigType::animation:
+          if (strcmp(name, "fps") == 0)
+            out.location = &animConfig.fps;
+          else if (strcmp(name, "lnt") == 0)
+            out.location = &animConfig.length;
+          else
+            out.status = CFGStatus::error_invalid_config;
+          break;
+
+        default:
+          out.status = CFGStatus::error_invalid_config_type;
+          break;
+      }
+
+      return out;
+    }
+  }  // namespace __internal
+
+  using namespace __internal;
+
+  ConfigHolder* getMainConfig() { return &config; }
+
+  AnimConfigHolder* getAnimConfig() { return &animConfig; }
+
+  CFGStatus readConfigFile(SdFile* directory, ConfigType type) {
+    switch (type) {
+      case ConfigType::main:
+        config = defaultConfig;
+        break;
+      case ConfigType::animation:
+        animConfig = defaultAnimConfig;
+        break;
+    }
+
+    if (!directory->exists(configFileName))
+      return CFGStatus::verbose_no_config_present;
+
+    if (!configFile.open(directory, configFileName, O_RDONLY))
+      return CFGStatus::error_config_no_open;
+
+    while (readFileUntil(&configFile, tempReader, tempReaderLength, ' ')) {
+      VariableLocationStatus varLocation = getVariableLocation(tempReader, type);
+
+      if (varLocation.status != CFGStatus::success) {
+        return varLocation.status;
+      }
+
+      if (!readFileUntil(&configFile, tempReader, tempReaderLength, '\n'))
+        return CFGStatus::error_invalid_config;
+
+      *varLocation.location = atoi(tempReader);
+    }
+
+    if (!configFile.close())
+      return CFGStatus::error_config_no_close;
+
+    return CFGStatus::success;
   }
-  return false;
-}
 
-uint16_t *getVariableLocation(char *name, ConfigType type)
-{
-  switch (type)
-  {
-  case main:
-    if (strcmp(name, "bri") == 0)
-      return &config.brightness;
-    else if (strcmp(name, "rnd") == 0)
-      return &config.random;
-    else if (strcmp(name, "tst") == 0)
-      return &config.testMode;
-    else
-      halt("Invalid config file, " + String(name) + " is no option");
-    break;
-  case animation:
-    if (strcmp(name, "fps") == 0)
-      return &animConfig.fps;
-    else if (strcmp(name, "lnt") == 0)
-      return &animConfig.length;
-    else
-      halt("Invalid config file, " + String(name) + " is no option");
-    break;
-
-  default:
-    halt("Incorrect config type");
-    break;
-  }
-  return 0;
-}
-
-bool readConfigFile(SdFile *directory, ConfigType type)
-{
-  if (type == animation)
-  {
-    animConfig = defaultAnimConfig;
-  }
-  else if (type == main)
-  {
-    config = defaultConfig;
-  }
-
-  if (!directory->exists(configFileName))
-    return false;
-
-  if (!configFile.open(directory, configFileName, O_RDONLY))
-    halt("Could not open config file in dir: " + getFileName(directory));
-
-  while (readFileUntil(&configFile, tempReader, tempReaderLength, ' '))
-  {
-    uint16_t *destination = getVariableLocation(tempReader, type);
-
-    if (!readFileUntil(&configFile, tempReader, tempReaderLength, '\n'))
-      halt("Invalid config file in dir: " + getFileName(directory));
-
-    *destination = atoi(tempReader);
-
-    Serial.println(*destination);
-  }
-
-  if (!configFile.close())
-    halt("Could not close config file");
-
-  return true;
-}
+}  // namespace ConfigManager

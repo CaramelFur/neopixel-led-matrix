@@ -3,7 +3,7 @@
 #pragma once
 
 // Enable this to debug
-#define DEBUG_MODE 1
+#define SERIAL_DEBUG 1
 
 static const uint8_t displayWidth = 16;
 static const uint8_t displayHeight = 16;

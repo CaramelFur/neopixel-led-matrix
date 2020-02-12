@@ -73,7 +73,7 @@ namespace SDReader {
         return SDStatus::error_folder_no_open;
       }
 
-#ifdef DEBUG_MODE
+#ifdef SERIAL_DEBUG
       Serial.print("Entering directory: ");
       currentDir->printName();
       Serial.println();
@@ -102,7 +102,7 @@ namespace SDReader {
         }
       }
 
-#ifdef DEBUG_MODE
+#ifdef SERIAL_DEBUG
       Serial.print("Opening frame from: ");
       currentDir->printName();
       Serial.println();
@@ -226,7 +226,7 @@ namespace SDReader {
 
       sortArray(fileNameList, fileCount);
 
-#ifdef DEBUG_MODE
+#ifdef SERIAL_DEBUG
       Serial.println("Sorted files:");
       for (FileCountUInt i = 0; i < fileCount; i++) {
         Serial.println(fileNameList[i]);

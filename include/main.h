@@ -7,3 +7,7 @@
 #include "sd.h"
 
 #pragma once
+
+void loadMainConfig();
+void loadNextDirectory();
+SdFile* loadNextFile();

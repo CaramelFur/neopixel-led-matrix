@@ -17,6 +17,7 @@ namespace ConfigManager {
     const AnimConfigHolder defaultAnimConfig = {
         .fps = 2,
         .length = 10,
+        .type = 0,
     };
 
     char tempReader[tempReaderLength] = {};
@@ -72,6 +73,8 @@ namespace ConfigManager {
             out.location = &animConfig.fps;
           else if (strcmp(name, "lnt") == 0)
             out.location = &animConfig.length;
+          else if (strcmp(name, "typ") == 0)
+            out.location = &animConfig.type;
           else
             out.status = CFGStatus::error_invalid_config;
           break;

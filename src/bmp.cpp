@@ -4,7 +4,7 @@ namespace BmpReader {
   namespace __internal {
     uint32_t colorMap[256] = {};
 
-    void (*pixelWriteFunction)(int16_t x, int16_t y, uint8_t r, uint8_t g, uint8_t b) = 0;
+    Better_NeoMatrix* matrix = 0;
 
     BMPStatus readBmpColormap(SdFile* bmpFile, uint32_t amountOfColors) {
       for (uint16_t i = 0; i < amountOfColors; i++) {
@@ -62,7 +62,7 @@ namespace BmpReader {
     uint16_t invertY(uint16_t i) { return displayHeight - 1 - i; }
 
     void insert(uint32_t pos, uint8_t red, uint8_t green, uint8_t blue) {
-      pixelWriteFunction(pos % displayWidth, invertY(pos / displayWidth), red, green, blue);
+      matrix->drawRGBPixel(pos % displayWidth, invertY(pos / displayWidth), red, green, blue);
     }
 
     void insert(uint32_t pos, uint32_t rgb) {
@@ -77,15 +77,15 @@ namespace BmpReader {
     void insertFromMap(uint32_t pos, uint8_t color) { return insert(pos, colorMap[color]); }
   }  // namespace pixel
 
-  void Initialize(void (*writePixel)(int16_t x, int16_t y, uint8_t r, uint8_t g, uint8_t b)) { pixelWriteFunction = writePixel; }
+  void Initialize(Better_NeoMatrix* neoMatrix) { matrix = neoMatrix; }
 
   BMPStatus readBmp(SdFile* bmpFile) {
     if (!bmpFile->isOpen()) {
       return BMPStatus::error_file_no_open;
     }
 
-    if (pixelWriteFunction == 0) {
-      return BMPStatus::error_noinit_pixel_write;
+    if (matrix == 0) {
+      return BMPStatus::error_noinit_matrix;
     }
 
     bmp_file_header_t fileHeader;
@@ -123,12 +123,12 @@ namespace BmpReader {
       return BMPStatus::error_incorrect_dimension;
 
     if (imageHeader.colors_in_palette > 0) {
-      readBmpColormap(bmpFile, imageHeader.colors_in_palette);
+      BMPStatus colorStatus = readBmpColormap(bmpFile, imageHeader.colors_in_palette);
+      if (colorStatus != BMPStatus::success)
+        return colorStatus;
     }
 
-    readBmpData(bmpFile, fileHeader.image_offset, imageHeader.image_width * imageHeader.image_height, imageHeader.bits_per_pixel);
-
-    return BMPStatus::success;
+    return readBmpData(bmpFile, fileHeader.image_offset, imageHeader.image_width * imageHeader.image_height, imageHeader.bits_per_pixel);
   }
 
 }  // namespace BmpReader

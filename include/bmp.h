@@ -7,6 +7,22 @@
 #pragma once
 
 namespace BmpReader {
+  enum BMPStatus {
+    success,
+    error_file_no_open,           // Tried to read from an unopened file
+    error_invalid_header_sig,     // Encountered invalid header signatureq
+    error_invalid_header_length,  // Bmp has unsupported header length
+    error_unsup_color_plane,      // Bmp has unsupported color plane
+    error_unsup_compression,      // Bmp uses compression, this is unsupported
+    error_unsup_bits_pixel,       // Bmp uses an unsupported pixel depth
+    error_unsup_color_palette,    // Bmp uses more than supported pallete colors
+    error_incorrect_dimension,    // Bmp has the incorrect size for this matrix
+    error_read_colormap,          // Unable to read the colormap from the bmp
+    error_noinit_matrix,     // The pixel write function has not been initialized
+    error_no_data_at_offset,      // There was no pixeldata at the bmp supplied offset
+    error_file_no_read,           // There was a problem with reading from the image file
+  };
+
   namespace __internal {
     // These are the header structure
     // These use __attribute__((packed)) because this disables the padding
@@ -31,22 +47,6 @@ namespace BmpReader {
       uint32_t important_colors;
     } __attribute__((packed));
 
-    enum BMPStatus {
-      success,
-      error_file_no_open,           // Tried to read from an unopened file
-      error_invalid_header_sig,     // Encountered invalid header signatureq
-      error_invalid_header_length,  // Bmp has unsupported header length
-      error_unsup_color_plane,      // Bmp has unsupported color plane
-      error_unsup_compression,      // Bmp uses compression, this is unsupported
-      error_unsup_bits_pixel,       // Bmp uses an unsupported pixel depth
-      error_unsup_color_palette,    // Bmp uses more than supported pallete colors
-      error_incorrect_dimension,    // Bmp has the incorrect size for this matrix
-      error_read_colormap,          // Unable to read the colormap from the bmp
-      error_noinit_pixel_write,     // The pixel write function has not been initialized
-      error_no_data_at_offset,      // There was no pixeldata at the bmp supplied offset
-      error_file_no_read,           // There was a problem with reading from the image file
-    };
-
     BMPStatus readBmpColormap(SdFile* bmpFile, uint32_t amountOfColors);
 
     BMPStatus readBmpData(SdFile* bmpFile, uint32_t image_offset, uint32_t pixels, uint16_t bits_per_pixel);
@@ -63,7 +63,7 @@ namespace BmpReader {
     void insertFromMap(uint32_t pos, uint8_t color);
   }  // namespace pixel
 
-  void Initialize(void (*writePixel)(int16_t x, int16_t y, uint8_t r, uint8_t g, uint8_t b));
+  void Initialize(Better_NeoMatrix* neoMatrix);
 
-  __internal::BMPStatus readBmp(SdFile* bmpFile);
+  BMPStatus readBmp(SdFile* bmpFile);
 }  // namespace BmpReader

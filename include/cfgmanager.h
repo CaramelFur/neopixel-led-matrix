@@ -28,6 +28,7 @@ namespace ConfigManager {
   struct AnimConfigHolder {
     ConfigUINT fps;
     ConfigUINT length;
+    ConfigUINT type;
   };
 
   struct VariableLocationStatus {

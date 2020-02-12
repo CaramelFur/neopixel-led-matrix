@@ -89,7 +89,7 @@ namespace SDReader {
       return SDStatus::success;
     }
 
-    NextFrameStatus selectNextFrame(char* fileNameList[],
+    NextFileStatus selectNextFile(char* fileNameList[],
                                     FileCountUInt fileNameListLength,
                                     FileCountUInt* currentIndex,
                                     SdFile* currentDir,
@@ -98,7 +98,7 @@ namespace SDReader {
       bool reachedEndOfFolder = false;
       if (currentFile->isOpen()) {
         if (!currentFile->close()) {
-          return NextFrameStatus{SDStatus::error_file_no_close, reachedEndOfFolder};
+          return NextFileStatus{SDStatus::error_file_no_close, reachedEndOfFolder};
         }
       }
 
@@ -115,31 +115,31 @@ namespace SDReader {
       }
 
       if (stopOnLast && reachedEndOfFolder) {
-        return NextFrameStatus{SDStatus::success, reachedEndOfFolder};
+        return NextFileStatus{SDStatus::success, reachedEndOfFolder};
       }
 
       if (!currentFile->open(currentDir, fileNameList[*currentIndex], O_RDONLY)) {
-        return NextFrameStatus{SDStatus::error_file_no_open, reachedEndOfFolder};
+        return NextFileStatus{SDStatus::error_file_no_open, reachedEndOfFolder};
       }
 
       if (currentFile->isDir()) {
         DirListStatus listStatus = listAllFiles(subFileNames, currentFile, &currentSubFileHolder, false);
         if (listStatus.status != SDStatus::success) {
-          return NextFrameStatus{listStatus.status, reachedEndOfFolder};
+          return NextFileStatus{listStatus.status, reachedEndOfFolder};
         }
 
         subFileNamesLength = listStatus.amountOfFiles;
         currentSubFileNameIndex = -1;
 
-        NextFrameStatus nextStatus = SDReader::selectNextFrame();
+        NextFileStatus nextStatus = SDReader::selectNextFile();
         if (nextStatus.status != SDStatus::success) {
-          return NextFrameStatus{nextStatus.status, reachedEndOfFolder};
+          return NextFileStatus{nextStatus.status, reachedEndOfFolder};
         }
       }
 
       // readBmp(currentFile);
 
-      return NextFrameStatus{SDStatus::success, reachedEndOfFolder};
+      return NextFileStatus{SDStatus::success, reachedEndOfFolder};
     }
 
     DirListStatus listAllFolders(uint16_t folderIndexList[], SdFile* rootDir, SdFile* currentFolder) {
@@ -235,7 +235,7 @@ namespace SDReader {
 
       return DirListStatus{SDStatus::success, fileCount};
     }
-  }  // namespace
+  }  // namespace __internal
 
   using namespace __internal;
 
@@ -244,6 +244,14 @@ namespace SDReader {
       return SdFileStatus{SDStatus::success, &rootDirHolder};
     }
     return SdFileStatus{SDStatus::error_root_closed, 0};
+  }
+
+  SdFileStatus getCurrentDirectory() {
+    if (currentDirHolder.isOpen() && currentDirHolder.isDir()) {
+      SdFileStatus{SDStatus::success, &currentDirHolder};
+    }
+
+    return SdFileStatus{SDStatus::error_folder_closed, 0};
   }
 
   SdFileStatus getCurrentFile() {
@@ -256,7 +264,7 @@ namespace SDReader {
     return SdFileStatus{SDStatus::error_file_closed, 0};
   }
 
-  SDStatus initialize() {
+  SDStatus Initialize() {
     initSDVariables();
 
     if (!sd.begin(SS, SD_SCK_MHZ(50))) {
@@ -293,22 +301,22 @@ namespace SDReader {
                                &currentFileHolder, &currentSubFileHolder);
   }
 
-  NextFrameStatus selectNextFrame() {
+  NextFileStatus selectNextFile() {
     if (currentFileHolder.isDir()) {
-      NextFrameStatus nextStatus =
-          selectNextFrame(subFileNames, subFileNamesLength, &currentSubFileNameIndex, &currentFileHolder, &currentSubFileHolder, true);
+      NextFileStatus nextStatus =
+          selectNextFile(subFileNames, subFileNamesLength, &currentSubFileNameIndex, &currentFileHolder, &currentSubFileHolder, true);
 
       if (nextStatus.status != SDStatus::success) {
         return nextStatus;
       }
 
       if (nextStatus.hasReachedEnd) {
-        return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder, false);
+        return selectNextFile(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder, false);
       }
 
       return nextStatus;
     } else {
-      return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder, false);
+      return selectNextFile(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder, false);
     }
   }
 

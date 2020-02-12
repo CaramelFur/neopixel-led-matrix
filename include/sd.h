@@ -39,7 +39,7 @@ namespace SDReader {
     FileCountUInt amountOfFiles;
   };
 
-  struct NextFrameStatus {
+  struct NextFileStatus {
     SDStatus status;
     bool hasReachedEnd;
   };
@@ -59,7 +59,7 @@ namespace SDReader {
                                  SdFile* currentDir,
                                  SdFile* currentFile,
                                  SdFile* currentSubFile);
-    NextFrameStatus selectNextFrame(char* fileNameList[],
+    NextFileStatus selectNextFile(char* fileNameList[],
                                     FileCountUInt fileNameListLength,
                                     FileCountUInt* currentIndex,
                                     SdFile* currentDir,
@@ -71,8 +71,9 @@ namespace SDReader {
   }  // namespace
 
   SdFileStatus getRootDirectory();
+  SdFileStatus getCurrentDirectory();
   SdFileStatus getCurrentFile();
-  SDStatus initialize();
+  SDStatus Initialize();
   SDStatus selectNextDirectory(bool useRandomOrder);
-  NextFrameStatus selectNextFrame();
+  NextFileStatus selectNextFile();
 }  // namespace SDReader

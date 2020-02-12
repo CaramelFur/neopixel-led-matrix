@@ -1,22 +1,20 @@
 #include "Arduino.h"
 #include "SdFat.h"
-#include "halt.h"
 #include "allSettings.h"
-#include "matrix.h"
 #include "filefuncs.h"
+#include "halt.h"
+#include "matrix.h"
 
 #pragma once
 
-struct bmp_file_header_t
-{
+struct bmp_file_header_t {
   uint16_t signature;
   uint32_t file_size;
   uint16_t reserved[2];
   uint32_t image_offset;
 } __attribute__((packed));
 
-struct bmp_image_header_t
-{
+struct bmp_image_header_t {
   uint32_t image_width;
   uint32_t image_height;
   uint16_t color_planes;
@@ -29,6 +27,6 @@ struct bmp_image_header_t
   uint32_t important_colors;
 } __attribute__((packed));
 
-void readBmp(SdFile *bmpFile);
+void readBmp(SdFile* bmpFile);
 
-void InitBmp(Better_NeoMatrix *newMatrix);
+void InitBmp(Better_NeoMatrix* newMatrix);

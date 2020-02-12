@@ -1,32 +1,22 @@
 #include "matrix.h"
 
-Better_NeoMatrix::Better_NeoMatrix(
-    int w, int h, uint8_t pin,
-    uint8_t matrixType, neoPixelType ledType)
-    : Adafruit_NeoMatrix(w, h, pin,
-                         matrixType, ledType) {}
+Better_NeoMatrix::Better_NeoMatrix(int w, int h, uint8_t pin, uint8_t matrixType, neoPixelType ledType)
+    : Adafruit_NeoMatrix(w, h, pin, matrixType, ledType) {}
 
-uint16_t Better_NeoMatrix::getPixelsLength()
-{
+uint16_t Better_NeoMatrix::getPixelsLength() {
   return numBytes;
 }
 
-void Better_NeoMatrix::drawRGBPixel(int16_t x, int16_t y, uint8_t r, uint8_t g, uint8_t b)
-{
-  /*r = r / 255 * brightness;
-  g = g / 255 * brightness;
-  b = b / 255 * brightness;*/
+void Better_NeoMatrix::drawRGBPixel(int16_t x, int16_t y, uint8_t r, uint8_t g, uint8_t b) {
   setPassThruColor((r << 16) | (g << 8) | b);
   drawPixel(x, y, 0);
   setPassThruColor();
 }
 
-void Better_NeoMatrix::scrollText(char *text, uint16_t length, uint8_t speed)
-{
+void Better_NeoMatrix::scrollText(char* text, uint16_t length, uint8_t speed) {
   uint32_t fullLengthInPixels = length * (dispCharWidth + 1);
 
-  for (uint32_t i = 0; i < fullLengthInPixels; i++)
-  {
+  for (uint32_t i = 0; i < fullLengthInPixels; i++) {
     setCursor(-i, textYPos);
     clear();
     print(text);

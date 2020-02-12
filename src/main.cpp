@@ -1,26 +1,18 @@
-#include "Arduino.h"
-
-#include "allSettings.h"
-#include "halt.h"
-#include "print.h"
-#include "sd.h"
-#include "bmp.h"
-#include "neo.h"
+#include "main.h"
 
 double finishAt = 0;
 double frameFinishAt = 0;
 uint16_t millisPerFrame = 500;
 
-ConfigHolder *config;
-AnimConfigHolder *animConfig;
+ConfigHolder* config;
+AnimConfigHolder* animConfig;
 
-void setup()
-{
+void setup() {
   Serial.begin(115200);
   delay(300);
   Serial.println("Hello There");
 
-  Better_NeoMatrix *mtrx = InitDisplay();
+  Better_NeoMatrix* mtrx = InitDisplay();
   setHaltDisplay(mtrx);
   InitBmp(mtrx);
   initSD();
@@ -34,24 +26,20 @@ void setup()
     TestDisplay();
 }
 
-void loop()
-{
+void loop() {
   finishAt = millis() + animConfig->length * 1000;
   frameFinishAt = millis() + millisPerFrame;
 
   millisPerFrame = 1000 / animConfig->fps;
 
-  do
-  {
-    do 
-    {
+  do {
+    do {
       ShowDisplayUpdates();
 
-      while (frameFinishAt > millis())
-      {
+      while (frameFinishAt > millis()) {
         delay(1);
       }
-      
+
       frameFinishAt = millis() + millisPerFrame;
     } while (!selectNextFrame());
   } while (finishAt > millis());

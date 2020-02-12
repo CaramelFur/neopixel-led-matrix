@@ -1,307 +1,315 @@
 #include "sd.h"
 
-static void initSDVariables();
-static bool isHiddenChar(char toTest);
-static FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *currentFile, bool allowFolders = true);
-static void selectNextDirectory(uint16 folderIndexList[], FileCountUInt folderIndexListLength, FileCountUInt *currentIndexListIndex, SdFile *rootDir, SdFile *currentDir, SdFile *currentFile, SdFile *currentSubFile);
-static FileCountUInt listAllFolders(uint16_t folderIndexList[], SdFile *rootDir, SdFile *currentFolder);
-static bool selectNextFrame(char *fileNameList[], FileCountUInt fileNameListLength, FileCountUInt *currentIndex, SdFile *currentDir, SdFile *currentFile, bool stopOnLast = false);
+namespace SDReader {
+  namespace __internal {  // Private
+    // Sd holders
+    SdFat sd;
+    SdFile rootDirHolder;
+    SdFile currentDirHolder;
+    SdFile currentSubFileHolder;
+    SdFile currentFileHolder;
 
-// Sd holders
-static SdFat sd;
+    // File holders
+    FileCountUInt currentFolderIndexesIndex = 0;
+    FileCountUInt folderIndexesLength = 0;
+    uint16_t folderIndexes[MaxFolders] = {};
 
-static SdFile rootDirHolder;
-static SdFile currentDirHolder;
-static SdFile currentSubFileHolder;
-static SdFile currentFileHolder;
+    FileCountUInt currentFileNameIndex = 0;
+    FileCountUInt fileNamesLength = 0;
+    char* fileNames[MaxFilesInFolder] = {};
 
-static FileCountUInt currentFolderIndexesIndex = 0;
-static FileCountUInt folderIndexesLength = 0;
-static uint16_t folderIndexes[MaxFolders] = {};
+    FileCountUInt currentSubFileNameIndex = 0;
+    FileCountUInt subFileNamesLength = 0;
+    char* subFileNames[MaxFilesInFolder] = {};
 
-static FileCountUInt currentFileNameIndex = 0;
-static FileCountUInt fileNamesLength = 0;
-static char *fileNames[MaxFilesInFolder] = {};
-
-static FileCountUInt currentSubFileNameIndex = 0;
-static FileCountUInt subFileNamesLength = 0;
-static char *subFileNames[MaxFilesInFolder] = {};
-
-void initSD()
-{
-  initSDVariables();
-
-  while (!sd.begin(SS, SD_SCK_MHZ(50)))
-  {
-    halt("Could not initialize the sd", true);
-  }
-
-  if (!rootDirHolder.open("/"))
-  {
-    halt("Could not open the sd root");
-  }
-
-  if (!readConfigFile(&rootDirHolder, ConfigType::main))
-  {
-    Serial.println("Could not find main config file, using defaults");
-  }
-
-  rootDirHolder.rewind();
-
-  folderIndexesLength = listAllFolders(folderIndexes, &rootDirHolder, &currentDirHolder);
-  currentFolderIndexesIndex = -1;
-
-  selectNextDirectory();
-}
-
-bool selectNextFrame()
-{
-  if (currentFileHolder.isDir())
-  {
-    
-    if (selectNextFrame(subFileNames, subFileNamesLength, &currentSubFileNameIndex, &currentFileHolder, &currentSubFileHolder, true))
-    {
-      Serial.println("reached end");
-      return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder);
-    }
-  }
-  else
-  {
-    return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder);
-  }
-  return false;
-}
-
-static bool selectNextFrame(char *fileNameList[], FileCountUInt fileNameListLength, FileCountUInt *currentIndex, SdFile *currentDir, SdFile *currentFile, bool stopOnLast)
-{
-  bool isEnd = false;
-  if (currentFile->isOpen())
-  {
-    if (!currentFile->close())
-    {
-      halt("Could no close current file: " + getFileName(currentFile));
-    }
-  }
-
-  Serial.print("Opening frame from: ");
-  currentDir->printName();
-  Serial.println();
-
-  *currentIndex = *currentIndex + 1;
-  if (*currentIndex == fileNameListLength)
-  {
-    *currentIndex = 0;
-    isEnd = true;
-    if (stopOnLast)
-      return isEnd;
-  }
-
-  if (!currentFile->open(currentDir, fileNameList[*currentIndex], O_RDONLY))
-  {
-    halt("Could not open next frame in dir: " + getFileName(currentDir));
-  }
-
-  if (currentFile->isDir())
-  {
-    subFileNamesLength = listAllFiles(subFileNames, currentFile, &currentSubFileHolder, false);
-    Serial.println("Listed subfiles");
-    currentSubFileNameIndex = -1;
-    selectNextFrame();
-    return isEnd;
-  }
-
-  readBmp(currentFile);
-  return isEnd;
-}
-
-static FileCountUInt listAllFiles(char *fileNameList[], SdFile *currentDir, SdFile *currentFile, bool allowFolders)
-{
-  if (!currentDir->isOpen())
-    halt("Tried to read frame but no directory is open");
-
-  if (currentFile->isOpen())
-  {
-    if (!currentFile->close())
-    {
-      halt("Could no close current file: " + getFileName(currentFile));
-    }
-  }
-
-  bool isFileBuffer = false;
-
-  FileCountUInt fileCount = 0;
-  while (currentFile->openNext(currentDir, O_RDONLY))
-  {
-    isFileBuffer = currentFile->isFile();
-    if (!currentFile->getName(fileNameList[fileCount], MaxFileNameLength))
-      halt("Could not get file name");
-    if (!currentFile->close())
-      halt("Could not close file while listing");
-
-    if (isHiddenChar(fileNameList[fileCount][0]))
-      continue;
-      
-    if (!allowFolders && !isFileBuffer)
-      halt("Please only store images in the folder: " + getFileName(currentDir));
-
-    if (fileCount == MaxFilesInFolder - 1)
-    {
-      halt("There are too many frames inside the folder: " + getFileName(currentDir));
-    }
-    fileCount++;
-  }
-
-  if (fileCount == 0)
-  {
-    halt("There are no frames inside the folder: " + getFileName(currentDir));
-  }
-
-  currentDir->rewind();
-
-  sortArray(fileNameList, fileCount);
-
-  for (FileCountUInt i = 0; i < fileCount; i++)
-  {
-    Serial.println(fileNameList[i]);
-  }
-
-  return fileCount;
-}
-
-void selectNextDirectory(bool doRandom)
-{
-  if (doRandom)
-  {
-    FileCountUInt newIndex = rand() % folderIndexesLength;
-
-    if (currentFolderIndexesIndex == newIndex + 1)
-    {
-      newIndex -= 1;
+    bool isHiddenChar(char toTest) {
+      for (uint8_t i = 0; i < hiddenCharsLen; i++) {
+        if (hiddenChars[i] == toTest)
+          return true;
+      }
+      return false;
     }
 
-    currentFolderIndexesIndex = newIndex;
-  }
-  return selectNextDirectory(folderIndexes, folderIndexesLength, &currentFolderIndexesIndex, &rootDirHolder, &currentDirHolder, &currentFileHolder, &currentSubFileHolder);
-}
+    void initSDVariables() {
+      FileCountUInt i;
+      for (i = 0; i < MaxFilesInFolder; i++) {
+        fileNames[i] = new char[MaxFileNameLength];
+      }
+      for (i = 0; i < MaxFilesInFolder; i++) {
+        subFileNames[i] = new char[MaxFileNameLength];
+      }
+    }
 
-static void selectNextDirectory(uint16 folderIndexList[], FileCountUInt folderIndexListLength, FileCountUInt *currentIndexListIndex, SdFile *rootDir, SdFile *currentDir, SdFile *currentFile, SdFile *currentSubFile)
-{
-  if (currentDir->isOpen())
-  {
-    if (!currentDir->close())
-    {
-      halt("Could not close current dir: " + getFileName(currentDir));
+    SDStatus selectNextDirectory(uint16 folderIndexList[],
+                                 FileCountUInt folderIndexListLength,
+                                 FileCountUInt* currentIndexListIndex,
+                                 SdFile* rootDir,
+                                 SdFile* currentDir,
+                                 SdFile* currentFile,
+                                 SdFile* currentSubFile) {
+      if (currentDir->isOpen()) {
+        if (!currentDir->close()) {
+          return SDStatus::error_folder_no_close;
+        }
+      }
+
+      if (currentSubFile->isOpen()) {
+        if (!currentSubFile->close()) {
+          return SDStatus::error_file_no_close;
+        }
+      }
+
+      if (currentFile->isOpen()) {
+        if (!currentFile->close()) {
+          return SDStatus::error_file_no_close;
+        }
+      }
+
+      *currentIndexListIndex = *currentIndexListIndex + 1;
+      if (*currentIndexListIndex >= folderIndexListLength)
+        *currentIndexListIndex = 0;
+
+      if (!currentDir->open(rootDir, folderIndexList[*currentIndexListIndex], O_RDONLY)) {
+        return SDStatus::error_folder_no_open;
+      }
+
+#ifdef DEBUG_MODE
+      Serial.print("Entering directory: ");
+      currentDir->printName();
+      Serial.println();
+#endif
+
+      DirListStatus listStatus = listAllFiles(fileNames, currentDir, currentFile, true);
+      if (listStatus.status != SDStatus::success) {
+        return listStatus.status;
+      }
+      fileNamesLength = listStatus.amountOfFiles;
+      currentFileNameIndex = -1;
+
+      return SDStatus::success;
+    }
+
+    NextFrameStatus selectNextFrame(char* fileNameList[],
+                                    FileCountUInt fileNameListLength,
+                                    FileCountUInt* currentIndex,
+                                    SdFile* currentDir,
+                                    SdFile* currentFile,
+                                    bool stopOnLast) {
+      bool reachedEndOfFolder = false;
+      if (currentFile->isOpen()) {
+        if (!currentFile->close()) {
+          return NextFrameStatus{SDStatus::error_file_no_close, reachedEndOfFolder};
+        }
+      }
+
+#ifdef DEBUG_MODE
+      Serial.print("Opening frame from: ");
+      currentDir->printName();
+      Serial.println();
+#endif
+
+      *currentIndex = *currentIndex + 1;
+      if (*currentIndex == fileNameListLength) {
+        *currentIndex = 0;
+        reachedEndOfFolder = true;
+      }
+
+      if (stopOnLast && reachedEndOfFolder) {
+        return NextFrameStatus{SDStatus::success, reachedEndOfFolder};
+      }
+
+      if (!currentFile->open(currentDir, fileNameList[*currentIndex], O_RDONLY)) {
+        return NextFrameStatus{SDStatus::error_file_no_open, reachedEndOfFolder};
+      }
+
+      if (currentFile->isDir()) {
+        DirListStatus listStatus = listAllFiles(subFileNames, currentFile, &currentSubFileHolder, false);
+        if (listStatus.status != SDStatus::success) {
+          return NextFrameStatus{listStatus.status, reachedEndOfFolder};
+        }
+
+        subFileNamesLength = listStatus.amountOfFiles;
+        currentSubFileNameIndex = -1;
+
+        NextFrameStatus nextStatus = SDReader::selectNextFrame();
+        if (nextStatus.status != SDStatus::success) {
+          return NextFrameStatus{nextStatus.status, reachedEndOfFolder};
+        }
+      }
+
+      // readBmp(currentFile);
+
+      return NextFrameStatus{SDStatus::success, reachedEndOfFolder};
+    }
+
+    DirListStatus listAllFolders(uint16_t folderIndexList[], SdFile* rootDir, SdFile* currentFolder) {
+      if (!rootDir->isOpen()) {
+        return DirListStatus{SDStatus::error_root_closed, 0};
+      }
+
+      char nameBuffer[MaxFileNameLength] = {};
+      bool isDirectory = false;
+
+      FileCountUInt folderCount = 0;
+
+      while (currentFolder->openNext(rootDir, O_RDONLY)) {
+        folderIndexList[folderCount] = currentFolder->dirIndex();
+
+        isDirectory = currentFolder->isDir();
+
+        if (!currentFolder->getName(nameBuffer, MaxFileNameLength))
+          return DirListStatus{SDStatus::error_folder_not_get_name, folderCount};
+        if (!currentFolder->close())
+          return DirListStatus{SDStatus::error_folder_no_close, folderCount};
+
+        if (isHiddenChar(nameBuffer[0]) || strcmp(nameBuffer, "System Volum") == 0)
+          continue;
+
+        if (!isDirectory)
+          return DirListStatus{SDStatus::error_non_folder_in_root, folderCount};
+
+        if (folderCount == MaxFilesInFolder - 1)
+          return DirListStatus{SDStatus::error_too_many_files, folderCount};
+
+        folderCount++;
+      }
+
+      if (folderCount == 0) {
+        return DirListStatus{SDStatus::error_no_files, folderCount};
+      }
+
+      rootDir->rewind();
+
+      return DirListStatus{SDStatus::success, folderCount};
+    }
+
+    DirListStatus listAllFiles(char* fileNameList[], SdFile* currentDir, SdFile* currentFile, bool allowFolders) {
+      if (!currentDir->isOpen()) {
+        return DirListStatus{SDStatus::error_folder_closed, 0};
+      }
+
+      if (currentFile->isOpen()) {
+        if (!currentFile->close()) {
+          return DirListStatus{SDStatus::error_file_no_close, 0};
+        }
+      }
+
+      bool isFile = false;
+
+      FileCountUInt fileCount = 0;
+
+      while (currentFile->openNext(currentDir, O_RDONLY)) {
+        isFile = currentFile->isFile();
+
+        if (!currentFile->getName(fileNameList[fileCount], MaxFileNameLength))
+          return DirListStatus{SDStatus::error_file_no_get_name, fileCount};
+        if (!currentFile->close())
+          return DirListStatus{SDStatus::error_file_no_close, fileCount};
+
+        if (isHiddenChar(fileNameList[fileCount][0]))
+          continue;
+
+        if (!allowFolders && !isFile)
+          return DirListStatus{SDStatus::error_non_file_in_folder, fileCount};
+
+        if (fileCount == MaxFilesInFolder - 1) {
+          return DirListStatus{SDStatus::error_too_many_files, fileCount};
+        }
+        fileCount++;
+      }
+
+      if (fileCount == 0) {
+        return DirListStatus{SDStatus::error_no_files, fileCount};
+      }
+
+      currentDir->rewind();
+
+      sortArray(fileNameList, fileCount);
+
+#ifdef DEBUG_MODE
+      Serial.println("Sorted files:");
+      for (FileCountUInt i = 0; i < fileCount; i++) {
+        Serial.println(fileNameList[i]);
+      }
+#endif
+
+      return DirListStatus{SDStatus::success, fileCount};
+    }
+  }  // namespace
+
+  using namespace __internal;
+
+  SdFileStatus getRootDirectory() {
+    if (rootDirHolder.isOpen() && rootDirHolder.isDir()) {
+      return SdFileStatus{SDStatus::success, &rootDirHolder};
+    }
+    return SdFileStatus{SDStatus::error_root_closed, 0};
+  }
+
+  SdFileStatus getCurrentFile() {
+    if (currentSubFileHolder.isOpen() && currentSubFileHolder.isFile()) {
+      SdFileStatus{SDStatus::success, &currentSubFileHolder};
+    }
+    if (currentFileHolder.isOpen() && currentFileHolder.isFile()) {
+      SdFileStatus{SDStatus::success, &currentFileHolder};
+    }
+    return SdFileStatus{SDStatus::error_file_closed, 0};
+  }
+
+  SDStatus initialize() {
+    initSDVariables();
+
+    if (!sd.begin(SS, SD_SCK_MHZ(50))) {
+      return SDStatus::error_init;
+    }
+
+    if (!rootDirHolder.open("/")) {
+      return SDStatus::error_root_no_open;
+    }
+
+    rootDirHolder.rewind();
+
+    DirListStatus listStatus = listAllFolders(folderIndexes, &rootDirHolder, &currentDirHolder);
+    if (listStatus.status != SDStatus::success) {
+      return listStatus.status;
+    }
+    folderIndexesLength = listStatus.amountOfFiles;
+    currentFolderIndexesIndex = -1;
+
+    return SDStatus::success;
+  }
+
+  SDStatus selectNextDirectory(bool useRandomOrder) {
+    if (useRandomOrder) {
+      FileCountUInt newIndex = rand() % folderIndexesLength;
+
+      if (currentFolderIndexesIndex == newIndex + 1) {
+        newIndex -= 1;
+      }
+
+      currentFolderIndexesIndex = newIndex;
+    }
+    return selectNextDirectory(folderIndexes, folderIndexesLength, &currentFolderIndexesIndex, &rootDirHolder, &currentDirHolder,
+                               &currentFileHolder, &currentSubFileHolder);
+  }
+
+  NextFrameStatus selectNextFrame() {
+    if (currentFileHolder.isDir()) {
+      NextFrameStatus nextStatus =
+          selectNextFrame(subFileNames, subFileNamesLength, &currentSubFileNameIndex, &currentFileHolder, &currentSubFileHolder, true);
+
+      if (nextStatus.status != SDStatus::success) {
+        return nextStatus;
+      }
+
+      if (nextStatus.hasReachedEnd) {
+        return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder, false);
+      }
+
+      return nextStatus;
+    } else {
+      return selectNextFrame(fileNames, fileNamesLength, &currentFileNameIndex, &currentDirHolder, &currentFileHolder, false);
     }
   }
 
-  if (currentFile->isOpen())
-  {
-    if (!currentFile->close())
-    {
-      halt("Could not close current file: " + getFileName(currentFile));
-    }
-  }
-
-  if (currentSubFile->isOpen())
-  {
-    if (!currentSubFile->close())
-    {
-      halt("Could not close current subfile: " + getFileName(currentSubFile));
-    }
-  }
-
-  *currentIndexListIndex = *currentIndexListIndex + 1;
-  if (*currentIndexListIndex == folderIndexListLength)
-    *currentIndexListIndex = 0;
-
-  if (!currentDir->open(rootDir, folderIndexList[*currentIndexListIndex], O_RDONLY))
-  {
-    halt("Could not open next directory in root");
-  }
-
-  Serial.print("Current directory: ");
-  currentDir->printName();
-  Serial.println();
-
-  fileNamesLength = listAllFiles(fileNames, currentDir, currentFile);
-  currentFileNameIndex = -1;
-
-  if (!readConfigFile(currentDir, ConfigType::animation))
-  {
-    Serial.println("Couldn't find config file, using defaults");
-  }
-
-  selectNextFrame();
-}
-
-static FileCountUInt listAllFolders(uint16_t folderIndexList[], SdFile *rootDir, SdFile *currentFolder)
-{
-  if (!rootDir->isOpen())
-    halt("Tried to folder from unopened root");
-
-  if (currentFolder->isOpen())
-  {
-    if (!currentFolder->close())
-    {
-      halt("Could not close current folder: " + getFileName(currentFolder));
-    }
-  }
-
-  char nameBuffer[MaxFileNameLength] = {};
-  bool isDirBuffer = false;
-
-  FileCountUInt folderCount = 0;
-  while (currentFolder->openNext(rootDir, O_RDONLY))
-  {
-    folderIndexList[folderCount] = currentFolder->dirIndex();
-    isDirBuffer = currentFolder->isDir();
-    if (!currentFolder->getName(nameBuffer, MaxFileNameLength))
-      halt("Could not get file name of folder");
-    if (!currentFolder->close())
-      halt("Could not close folder while listing");
-
-    if (isHiddenChar(nameBuffer[0]) || strcmp(nameBuffer, "System Volum") == 0)
-      continue;
-
-    if (!isDirBuffer)
-      halt("Please only store folders in the root");
-
-    if (folderCount == MaxFilesInFolder - 1)
-    {
-      halt("There are too many folders in root");
-    }
-    folderCount++;
-  }
-
-  if (folderCount == 0)
-  {
-    halt("There are no folders in root");
-  }
-
-  rootDir->rewind();
-
-  return folderCount;
-}
-
-static void initSDVariables()
-{
-  FileCountUInt i;
-  for (i = 0; i < MaxFilesInFolder; i++)
-  {
-    fileNames[i] = new char[MaxFileNameLength];
-  }
-  for (i = 0; i < MaxFilesInFolder; i++)
-  {
-    subFileNames[i] = new char[MaxFileNameLength];
-  }
-}
-
-static bool isHiddenChar(char toTest)
-{
-  for (uint8_t i = 0; i < hiddenCharsLen; i++)
-  {
-    if (hiddenChars[i] == toTest)
-      return true;
-  }
-  return false;
-}
+}  // namespace SDReader

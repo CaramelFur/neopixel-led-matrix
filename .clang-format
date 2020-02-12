@@ -1,0 +1,11 @@
+{
+  BasedOnStyle: Chromium,
+  NamespaceIndentation: All,
+  AlwaysBreakAfterDefinitionReturnType: None,
+  AlwaysBreakAfterReturnType: None,
+  ColumnLimit: 140,
+  IncludeBlocks: Regroup,
+  IndentPPDirectives: BeforeHash,
+  #IndentCaseBlocks: true,
+  #IndentWrappedFunctionNames: true,
+}

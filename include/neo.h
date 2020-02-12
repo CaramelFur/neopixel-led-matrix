@@ -3,7 +3,6 @@
 #include <Adafruit_NeoPixel.h>
 
 #include "allSettings.h"
-#include "halt.h"
 #include "matrix.h"
 
 #pragma once

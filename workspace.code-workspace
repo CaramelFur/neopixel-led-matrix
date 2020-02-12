@@ -14,7 +14,15 @@
 			"functional": "cpp",
 			"istream": "cpp",
 			"tuple": "cpp",
-			"utility": "cpp"
+			"utility": "cpp",
+			"deque": "cpp",
+			"list": "cpp",
+			"string": "cpp",
+			"unordered_map": "cpp",
+			"vector": "cpp",
+			"initializer_list": "cpp",
+			"memory": "cpp",
+			"sstream": "cpp"
 		}
 	}
 }

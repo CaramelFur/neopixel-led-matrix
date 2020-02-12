@@ -8,17 +8,23 @@
 
 #pragma once
 
-struct PixelBuffer {
-  uint16_t length;
-  uint8_t* pixels;
-};
+namespace NeoDisplay {
+  namespace colors {
+    extern const uint16_t red;
+    extern const uint16_t green;
+    extern const uint16_t blue;
+    extern const uint16_t white;
+    extern const uint16_t black;
+  }  // namespace colors
 
-uint16_t rgbTo16(uint8_t r, uint8_t g, uint8_t b);
+  namespace __internal {
+    uint16_t rgbTo16(uint8_t r, uint8_t g, uint8_t b);
+  }  // namespace __internal
 
-Better_NeoMatrix* InitDisplay();
+  Better_NeoMatrix* Initialize();
 
-void SetDisplayBrightness(uint8_t brightness);
+  void SetDisplayBrightness(uint8_t brightness);
 
-void TestDisplay();
+  void TestDisplay();
 
-void ShowDisplayUpdates();
+}  // namespace NeoDisplay

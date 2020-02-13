@@ -37,6 +37,7 @@ void loop() {
   if (animConfig->type == 0) {
     displayCurrentAnimation();
   } else if (animConfig->type == 1) {
+    halt("nigg");
   } else {
     halt("Unsupported animation type");
   }

@@ -90,11 +90,11 @@ namespace SDReader {
     }
 
     NextFileStatus selectNextFile(char* fileNameList[],
-                                    FileCountUInt fileNameListLength,
-                                    FileCountUInt* currentIndex,
-                                    SdFile* currentDir,
-                                    SdFile* currentFile,
-                                    bool stopOnLast) {
+                                  FileCountUInt fileNameListLength,
+                                  FileCountUInt* currentIndex,
+                                  SdFile* currentDir,
+                                  SdFile* currentFile,
+                                  bool stopOnLast) {
       bool reachedEndOfFolder = false;
       if (currentFile->isOpen()) {
         if (!currentFile->close()) {
@@ -226,7 +226,7 @@ namespace SDReader {
 
       sortArray(fileNameList, fileCount);
 
-#ifdef SERIAL_DEBUG
+#ifdef defined(SERIAL_DEBUG) && defined(SORT_DEBUG)
       Serial.println("Sorted files:");
       for (FileCountUInt i = 0; i < fileCount; i++) {
         Serial.println(fileNameList[i]);

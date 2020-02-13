@@ -3,7 +3,11 @@
 #pragma once
 
 // Enable this to debug
-#define SERIAL_DEBUG 1
+ #define SERIAL_DEBUG 1
+// #undef SERIAL_DEBUG
+// Enable this to debug sorting
+// #define SORT_DEBUG 1
+#undef SORT_DEBUG
 
 static const uint8_t displayWidth = 16;
 static const uint8_t displayHeight = 16;

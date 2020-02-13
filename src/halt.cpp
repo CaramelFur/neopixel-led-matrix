@@ -6,7 +6,7 @@ Better_NeoMatrix* errorDisplay = 0;
 
 void printToDisplay(String message, bool onlyOnce) {
   do {
-    errorDisplay->scrollText(message.begin(), message.length());
+    errorDisplay->scrollText(message.begin(), message.length(), scrollSpeed);
   } while (!onlyOnce);
 }
 

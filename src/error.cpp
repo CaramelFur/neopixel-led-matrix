@@ -3,10 +3,9 @@
 bool isSuccess(BmpReader::BMPStatus status) {
   using namespace BmpReader;
 
-  if (status == BmpReader::BMPStatus::success)
-    return true;
-
   switch (status) {
+    case BMPStatus::success:
+      return true;
     case BMPStatus::error_file_no_open:
       halt("Tried to read bmp from an unopened file");
     case BMPStatus::error_invalid_header_sig:
@@ -39,10 +38,9 @@ bool isSuccess(BmpReader::BMPStatus status) {
 bool isSuccess(ConfigManager::CFGStatus status) {
   using namespace ConfigManager;
 
-  if (status == CFGStatus::success)
-    return true;
-
   switch (status) {
+    case CFGStatus::success:
+      return true;
     case CFGStatus::verbose_no_config_present:
       return true;
     case CFGStatus::error_invalid_config:
@@ -61,10 +59,9 @@ bool isSuccess(ConfigManager::CFGStatus status) {
 bool isSuccess(SDReader::SDStatus status) {
   using namespace SDReader;
 
-  if (status == SDStatus::success)
-    return true;
-
   switch (status) {
+    case SDStatus::success:
+      return true;
     case SDStatus::error_init:
       halt("Could not open / initialize sd card");
     case SDStatus::error_root_no_open:

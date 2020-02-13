@@ -90,6 +90,10 @@ void displayCurrentAnimation() {
 
 void displayCurrentScrollText() {
   char charBuffer[scrollTextBufferLength] = {};
+  
+  if (animConfig->length == 0)
+    animConfig->length = 1;
+
   for (ConfigUINT i = 0; i < animConfig->length; i++) {
     while (true) {
       SDReader::NextFileStatus nextFrameStatus = SDReader::selectNextFile();
@@ -102,11 +106,11 @@ void displayCurrentScrollText() {
       isSuccess(curFrame.status);
 
       while (true) {
-        uint8_t len = SD::readFileUntil(curFrame.file, charBuffer, scrollTextBufferLength, '\n');
-        if (len == 0)
+        SD::ReadFileUntilResult result = SD::readFileUntilAdv(curFrame.file, charBuffer, scrollTextBufferLength, '\n');
+        if (result.status == SD::ReadFileUntilStatus::error_read)
           break;
 
-        mtrx->scrollText(charBuffer, len, animConfig->fps);
+        mtrx->scrollText(charBuffer, result.textRead, animConfig->fps);
       }
     }
   }

@@ -18,5 +18,5 @@ public:
 
   void drawRGBPixel(int16_t x, int16_t y, uint8_t r, uint8_t g, uint8_t b);
 
-  void scrollText(char *text, uint16_t length, uint8_t speed = 50);
+  void scrollText(char *text, uint16_t length, uint16_t speed);
 };

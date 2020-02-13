@@ -72,9 +72,6 @@ void displayCurrentAnimation() {
       SDReader::NextFileStatus nextFrameStatus = SDReader::selectNextFile();
       isSuccess(nextFrameStatus.status);
 
-      if (nextFrameStatus.hasReachedEnd)
-        break;
-
       SDReader::SdFileStatus curFrame = SDReader::getCurrentFile();
       isSuccess(curFrame.status);
 
@@ -84,13 +81,16 @@ void displayCurrentAnimation() {
 
       while (frameFinishAt > millis())
         ;
+
+      if (nextFrameStatus.hasReachedEnd)
+        break;
     }
   } while (finishAt > millis());
 }
 
 void displayCurrentScrollText() {
   char charBuffer[scrollTextBufferLength] = {};
-  
+
   if (animConfig->length == 0)
     animConfig->length = 1;
 

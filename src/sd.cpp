@@ -271,6 +271,8 @@ namespace SDReader {
       return SDStatus::error_init;
     }
 
+    randomSeed(micros());
+
     if (!rootDirHolder.open("/")) {
       return SDStatus::error_root_no_open;
     }
@@ -289,7 +291,7 @@ namespace SDReader {
 
   SDStatus selectNextDirectory(bool useRandomOrder) {
     if (useRandomOrder) {
-      FileCountUInt newIndex = rand() % folderIndexesLength;
+      FileCountUInt newIndex = random(MaxFilesInFolder) % folderIndexesLength;
 
       if (currentFolderIndexesIndex == newIndex + 1) {
         newIndex -= 1;

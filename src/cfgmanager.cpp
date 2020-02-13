@@ -27,33 +27,6 @@ namespace ConfigManager {
     ConfigHolder config = defaultConfig;
     AnimConfigHolder animConfig = defaultAnimConfig;
 
-    bool readFileUntil(SdFile* file, char* buf, uint8_t length, char delimiter) {
-      uint8_t currentCharPos = 0;
-
-      // Keep going as long as we dont go outside of the buffer
-      while (currentCharPos != length) {
-        if (!file->read(&buf[currentCharPos], 1)) {
-          // Quit if it reaches the end of the file
-          break;
-        }
-
-        if (buf[currentCharPos] == delimiter ||                        // If the current Char is the deliter stop
-            (delimiter == '\n' ? buf[currentCharPos] == '\r' : false)  // If the delimiter is \n also check for \r
-        ) {
-          // If the current \r is surpassed by a \n process that too
-          if (buf[currentCharPos] == '\r' && file->peek() == '\n') {
-            file->read();
-          }
-
-          // End the string with a null character and return
-          buf[currentCharPos] = '\0';
-          return true;
-        }
-        currentCharPos++;
-      }
-      return false;
-    }
-
     VariableLocationStatus getVariableLocation(char* name, ConfigType type) {
       VariableLocationStatus out = {CFGStatus::success, 0};
 
@@ -110,14 +83,14 @@ namespace ConfigManager {
     if (!configFile.open(directory, configFileName, O_RDONLY))
       return CFGStatus::error_config_no_open;
 
-    while (readFileUntil(&configFile, tempReader, tempReaderLength, ' ')) {
+    while (SD::readFileUntil(&configFile, tempReader, tempReaderLength, ' ')) {
       VariableLocationStatus varLocation = getVariableLocation(tempReader, type);
 
       if (varLocation.status != CFGStatus::success) {
         return varLocation.status;
       }
 
-      if (!readFileUntil(&configFile, tempReader, tempReaderLength, '\n'))
+      if (!SD::readFileUntil(&configFile, tempReader, tempReaderLength, '\n'))
         return CFGStatus::error_invalid_config;
 
       *varLocation.location = atoi(tempReader);

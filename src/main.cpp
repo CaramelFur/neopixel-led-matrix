@@ -85,3 +85,9 @@ void displayCurrentAnimation() {
     }
   } while (finishAt > millis());
 }
+
+void displayCurrentScrollText() {
+  for(ConfigUINT i = 0; i < animConfig->length; i++){
+    
+  }
+}

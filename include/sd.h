@@ -60,15 +60,15 @@ namespace SDReader {
                                  SdFile* currentFile,
                                  SdFile* currentSubFile);
     NextFileStatus selectNextFile(char* fileNameList[],
-                                    FileCountUInt fileNameListLength,
-                                    FileCountUInt* currentIndex,
-                                    SdFile* currentDir,
-                                    SdFile* currentFile,
-                                    bool stopOnLast);
+                                  FileCountUInt fileNameListLength,
+                                  FileCountUInt* currentIndex,
+                                  SdFile* currentDir,
+                                  SdFile* currentFile,
+                                  bool stopOnLast);
     DirListStatus listAllFolders(uint16_t folderIndexList[], SdFile* rootDir, SdFile* currentFolder);
     DirListStatus listAllFiles(char* fileNameList[], SdFile* currentDir, SdFile* currentFile, bool allowFolders);
 
-  }  // namespace
+  }  // namespace __internal
 
   SdFileStatus getRootDirectory();
   SdFileStatus getCurrentDirectory();

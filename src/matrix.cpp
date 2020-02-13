@@ -14,10 +14,10 @@ void Better_NeoMatrix::drawRGBPixel(int16_t x, int16_t y, uint8_t r, uint8_t g, 
 }
 
 void Better_NeoMatrix::scrollText(char* text, uint16_t length, uint8_t speed) {
-  uint32_t fullLengthInPixels = length * (dispCharWidth + 1);
+  uint32_t fullLengthInPixels = length * (dispCharWidth + 1) + displayWidth;
 
   for (uint32_t i = 0; i < fullLengthInPixels; i++) {
-    setCursor(-i, textYPos);
+    setCursor(-i + displayWidth, textYPos);
     clear();
     print(text);
     show();

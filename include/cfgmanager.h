@@ -36,10 +36,6 @@ namespace ConfigManager {
     ConfigUINT* location;
   };
 
-  namespace __internal {
-    bool readFileUntil(SdFile* file, char* buf, uint8_t length, char delimiter);
-  }
-
   ConfigHolder* getMainConfig();
   AnimConfigHolder* getAnimConfig();
 

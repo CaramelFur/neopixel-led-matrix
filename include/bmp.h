@@ -9,7 +9,7 @@
 namespace BmpReader {
   enum BMPStatus {
     success,
-    error_file_no_open,           // Tried to read from an unopened file
+    error_file_no_open,           // Tried to read bmp from an unopened file
     error_invalid_header_sig,     // Encountered invalid header signatureq
     error_invalid_header_length,  // Bmp has unsupported header length
     error_unsup_color_plane,      // Bmp has unsupported color plane
@@ -18,7 +18,7 @@ namespace BmpReader {
     error_unsup_color_palette,    // Bmp uses more than supported pallete colors
     error_incorrect_dimension,    // Bmp has the incorrect size for this matrix
     error_read_colormap,          // Unable to read the colormap from the bmp
-    error_noinit_matrix,     // The pixel write function has not been initialized
+    error_noinit_matrix,          // The pixel write function has not been initialized
     error_no_data_at_offset,      // There was no pixeldata at the bmp supplied offset
     error_file_no_read,           // There was a problem with reading from the image file
   };

@@ -5,9 +5,10 @@
 #include "neo.h"
 #include "print.h"
 #include "sd.h"
+#include "error.h"
 
 #pragma once
 
 void loadMainConfig();
 void loadNextDirectory();
-SdFile* loadNextFile();
+void displayCurrentAnimation();

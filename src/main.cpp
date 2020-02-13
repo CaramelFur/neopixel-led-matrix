@@ -8,16 +8,20 @@ ConfigManager::ConfigHolder* config;
 ConfigManager::AnimConfigHolder* animConfig;
 
 void setup() {
+#ifdef SERIAL_DEBUG
   Serial.begin(115200);
+#endif
   delay(300);
-  Serial.println("Hello There");
+#ifdef SERIAL_DEBUG
+  Serial.println("Hello World!");
+#endif
 
   Better_NeoMatrix* mtrx = NeoDisplay::Initialize();
   setHaltDisplay(mtrx);
 
   BmpReader::Initialize(mtrx);
 
-  SDReader::Initialize();
+  isSuccess(SDReader::Initialize());
 
   loadMainConfig();
 
@@ -27,57 +31,56 @@ void setup() {
     NeoDisplay::TestDisplay();
 }
 
+void loop() {
+  loadNextDirectory();
+
+  if (animConfig->type == 0) {
+    displayCurrentAnimation();
+  } else if (animConfig->type == 1) {
+  } else {
+    halt("Unsupported animation type");
+  }
+}
+
 void loadMainConfig() {
   SDReader::SdFileStatus rootDir = SDReader::getRootDirectory();
-  if (rootDir.status != SDReader::SDStatus::success) {
-    halt("Sd error: " + rootDir.status);
-  }
+  isSuccess(rootDir.status);
   ConfigManager::readConfigFile(rootDir.file, ConfigManager::ConfigType::main);
   config = ConfigManager::getMainConfig();
 }
 
 void loadNextDirectory() {
-  SDReader::SDStatus dirStatus = SDReader::selectNextDirectory(config->random);
-  if (dirStatus != SDReader::SDStatus::success) {
-    halt("Sd error: " + dirStatus);
-  }
+  isSuccess(SDReader::selectNextDirectory(config->random));
+
   SDReader::SdFileStatus curDir = SDReader::getCurrentDirectory();
-  if (curDir.status != SDReader::SDStatus::success) {
-    halt("Sd error: " + curDir.status);
-  }
+  isSuccess(curDir.status);
+
   ConfigManager::readConfigFile(curDir.file, ConfigManager::ConfigType::animation);
   animConfig = ConfigManager::getAnimConfig();
 }
 
-SdFile* loadNextFile() {
-  SDReader::NextFileStatus fileStatus = SDReader::selectNextFile();
-  if (fileStatus.status != SDReader::SDStatus::success) {
-    halt("Sd error: " + fileStatus.status);
-  }
-  SDReader::SdFileStatus curFile = SDReader::getCurrentFile();
-  if (curFile.status != SDReader::SDStatus::success) {
-    halt("Sd error: " + curFile.status);
-  }
-  return curFile.file;
-}
-
-void loop() {
+void displayCurrentAnimation() {
   finishAt = millis() + animConfig->length * 1000;
-  frameFinishAt = millis() + millisPerFrame;
-
   millisPerFrame = 1000 / animConfig->fps;
 
   do {
-    do {
-      ShowDisplayUpdates();
-
-      while (frameFinishAt > millis()) {
-        delay(1);
-      }
-
+    while (true) {
       frameFinishAt = millis() + millisPerFrame;
-    } while (!selectNextFrame());
-  } while (finishAt > millis());
+      SDReader::NextFileStatus nextFrameStatus = SDReader::selectNextFile();
+      isSuccess(nextFrameStatus.status);
 
-  selectNextDirectory(config->random);
+      SDReader::SdFileStatus curFrame = SDReader::getCurrentFile();
+      isSuccess(curFrame.status);
+
+      isSuccess(BmpReader::readBmp(curFrame.file));
+
+      NeoDisplay::PushFrameOut();
+
+      while (frameFinishAt > millis())
+        ;
+
+      if (nextFrameStatus.hasReachedEnd)
+        break;
+    }
+  } while (finishAt > millis());
 }

@@ -26,4 +26,6 @@ namespace NeoDisplay {
 
   void TestDisplay();
 
+  void PushFrameOut();
+
 }  // namespace NeoDisplay

@@ -248,7 +248,7 @@ namespace SDReader {
 
   SdFileStatus getCurrentDirectory() {
     if (currentDirHolder.isOpen() && currentDirHolder.isDir()) {
-      SdFileStatus{SDStatus::success, &currentDirHolder};
+      return SdFileStatus{SDStatus::success, &currentDirHolder};
     }
 
     return SdFileStatus{SDStatus::error_folder_closed, 0};
@@ -256,10 +256,10 @@ namespace SDReader {
 
   SdFileStatus getCurrentFile() {
     if (currentSubFileHolder.isOpen() && currentSubFileHolder.isFile()) {
-      SdFileStatus{SDStatus::success, &currentSubFileHolder};
+      return SdFileStatus{SDStatus::success, &currentSubFileHolder};
     }
     if (currentFileHolder.isOpen() && currentFileHolder.isFile()) {
-      SdFileStatus{SDStatus::success, &currentFileHolder};
+      return SdFileStatus{SDStatus::success, &currentFileHolder};
     }
     return SdFileStatus{SDStatus::error_file_closed, 0};
   }

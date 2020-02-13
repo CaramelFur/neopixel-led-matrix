@@ -4,6 +4,8 @@ double finishAt = 0;
 double frameFinishAt = 0;
 uint16_t millisPerFrame = 500;
 
+Better_NeoMatrix* mtrx;
+
 ConfigManager::ConfigHolder* config;
 ConfigManager::AnimConfigHolder* animConfig;
 
@@ -16,7 +18,7 @@ void setup() {
   Serial.println("Hello World!");
 #endif
 
-  Better_NeoMatrix* mtrx = NeoDisplay::Initialize();
+  mtrx = NeoDisplay::Initialize();
   setHaltDisplay(mtrx);
 
   BmpReader::Initialize(mtrx);
@@ -37,7 +39,7 @@ void loop() {
   if (animConfig->type == 0) {
     displayCurrentAnimation();
   } else if (animConfig->type == 1) {
-    halt("nigg");
+    displayCurrentScrollText();
   } else {
     halt("Unsupported animation type");
   }
@@ -70,6 +72,9 @@ void displayCurrentAnimation() {
       SDReader::NextFileStatus nextFrameStatus = SDReader::selectNextFile();
       isSuccess(nextFrameStatus.status);
 
+      if (nextFrameStatus.hasReachedEnd)
+        break;
+
       SDReader::SdFileStatus curFrame = SDReader::getCurrentFile();
       isSuccess(curFrame.status);
 
@@ -79,15 +84,30 @@ void displayCurrentAnimation() {
 
       while (frameFinishAt > millis())
         ;
-
-      if (nextFrameStatus.hasReachedEnd)
-        break;
     }
   } while (finishAt > millis());
 }
 
 void displayCurrentScrollText() {
-  for(ConfigUINT i = 0; i < animConfig->length; i++){
-    
+  char charBuffer[scrollTextBufferLength] = {};
+  for (ConfigUINT i = 0; i < animConfig->length; i++) {
+    while (true) {
+      SDReader::NextFileStatus nextFrameStatus = SDReader::selectNextFile();
+      isSuccess(nextFrameStatus.status);
+
+      if (nextFrameStatus.hasReachedEnd)
+        break;
+
+      SDReader::SdFileStatus curFrame = SDReader::getCurrentFile();
+      isSuccess(curFrame.status);
+
+      while (true) {
+        uint8_t len = SD::readFileUntil(curFrame.file, charBuffer, scrollTextBufferLength, '\n');
+        if (len == 0)
+          break;
+
+        mtrx->scrollText(charBuffer, len, animConfig->fps);
+      }
+    }
   }
 }

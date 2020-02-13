@@ -21,4 +21,6 @@ static const bool IsGRB = true;
 static const uint8_t hiddenCharsLen = 2;
 static const char hiddenChars[hiddenCharsLen] = {'_', '.'};
 
+static const uint8_t scrollTextBufferLength = 255;
+
 extern const uint16_t textYPos;

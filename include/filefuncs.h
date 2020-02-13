@@ -5,5 +5,5 @@
 
 namespace SD {
   String getFileName(SdFile* file, uint8_t buflength = 13);
-  bool readFileUntil(SdFile* file, char* buf, uint8_t length, char delimiter);
+  uint8_t readFileUntil(SdFile* file, char* buf, uint8_t length, char delimiter);
 }  // namespace SD

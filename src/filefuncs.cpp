@@ -10,7 +10,7 @@ namespace SD {
     return String(out);
   }
 
-  bool readFileUntil(SdFile* file, char* buf, uint8_t length, char delimiter) {
+  uint8_t readFileUntil(SdFile* file, char* buf, uint8_t length, char delimiter) {
     uint8_t currentCharPos = 0;
 
     // Keep going as long as we dont go outside of the buffer
@@ -30,10 +30,10 @@ namespace SD {
 
         // End the string with a null character and return
         buf[currentCharPos] = '\0';
-        return true;
+        return currentCharPos + 1;
       }
       currentCharPos++;
     }
-    return false;
+    return 0;
   }
 }  // namespace SD

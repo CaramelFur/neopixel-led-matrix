@@ -1,5 +1,9 @@
 #include "halt.h"
 
+Better_NeoMatrix* Halt::errorDisplay{
+  0
+};
+
 void Halt::printToDisplay(String message, bool onlyOnce) {
   do {
     errorDisplay->scrollText(message.begin(), message.length(), scrollSpeed);

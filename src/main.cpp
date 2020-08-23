@@ -76,7 +76,7 @@ void displayCurrentAnimation() {
 
       isSuccess(BmpReader::readBmp(curFrame.file));
 
-      NeoDisplay::PushFrameOut();
+      NeoDisplay::Flush();
 
       while (frameFinishAt > millis())
         ;

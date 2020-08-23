@@ -15,4 +15,4 @@ class Halt
   public:
     static void halt(String message, bool onlyOnce = false);
     static void setDisplay(Better_NeoMatrix * mat);
-}
+};

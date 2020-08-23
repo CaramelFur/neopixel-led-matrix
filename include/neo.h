@@ -7,25 +7,39 @@
 
 #pragma once
 
-namespace NeoDisplay {
-  namespace colors {
-    extern const uint16_t red;
-    extern const uint16_t green;
-    extern const uint16_t blue;
-    extern const uint16_t white;
-    extern const uint16_t black;
-  }  // namespace colors
+#define rgbTo16Compile(r, g, b) (((((r / 0xFF * 0b00011111) << 6) | (g / 0xFF * 0b00111111)) << 5) | (b / 0xFF * 0b00011111))
 
-  namespace __internal {
-    uint16_t rgbTo16(uint8_t r, uint8_t g, uint8_t b);
-  }  // namespace __internal
+class NeoDisplay {
+ private:
+  const static uint8_t MatrixConf = NEO_MATRIX_BOTTOM + NEO_MATRIX_RIGHT +  // The neo pixel strip starts in the top right
+                                    NEO_MATRIX_ROWS +                       // The neo pixel strip is divided into rows
+                                    NEO_MATRIX_ZIGZAG;                      // The rows are attached in a zigzag pattern
+  const static uint8_t PixelConf = NEO_KHZ800 + IsGRB ? NEO_GRB : NEO_RGB;
 
-  Better_NeoMatrix* Initialize();
+  static Better_NeoMatrix* matrix;
 
-  void SetDisplayBrightness(uint8_t brightness);
+ public:
+  static Better_NeoMatrix* Initialize();
 
-  void TestDisplay();
+  static void SetDisplayBrightness(uint8_t brightness);
 
-  void PushFrameOut();
+  static void TestDisplay();
 
-}  // namespace NeoDisplay
+  static void Flush();
+
+  class Colors;
+};
+
+class NeoDisplay::Colors {
+  // private:
+  // static uint16_t rgbTo16(uint8_t r, uint8_t g, uint8_t b);
+
+ public:
+  const static uint16_t red = rgbTo16Compile(255, 0, 0);
+  const static uint16_t green = rgbTo16Compile(0, 255, 0);
+  const static uint16_t blue = rgbTo16Compile(0, 0, 255);
+  const static uint16_t white = rgbTo16Compile(255, 255, 255);
+  const static uint16_t black = rgbTo16Compile(0, 0, 0);
+};
+
+#undef rgbTo16Compile

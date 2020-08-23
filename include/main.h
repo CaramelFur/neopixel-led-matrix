@@ -11,5 +11,6 @@
 
 void loadMainConfig();
 void loadNextDirectory();
-void displayCurrentAnimation();
+void displayCurrentMFAnimation();
 void displayCurrentScrollText();
+void displayCurrentSFAnimation();

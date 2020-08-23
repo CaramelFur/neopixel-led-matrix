@@ -293,12 +293,12 @@ namespace SDReader {
     if (useRandomOrder) {
       FileCountUInt newIndex = random(MaxFilesInFolder) % folderIndexesLength;
 
-      if (currentFolderIndexesIndex == newIndex + 1) {
+      if (currentFolderIndexesIndex == newIndex + 1) 
         newIndex -= 1;
-      }
-
+      
       currentFolderIndexesIndex = newIndex;
     }
+
     return selectNextDirectory(folderIndexes, folderIndexesLength, &currentFolderIndexesIndex, &rootDirHolder, &currentDirHolder,
                                &currentFileHolder, &currentSubFileHolder);
   }

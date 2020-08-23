@@ -4,7 +4,7 @@ double finishAt = 0;
 double frameFinishAt = 0;
 uint16_t millisPerFrame = 500;
 
-Better_NeoMatrix* mtrx;
+Better_NeoMatrix* matrix;
 
 ConfigManager::ConfigHolder* config;
 ConfigManager::AnimConfigHolder* animConfig;
@@ -15,13 +15,13 @@ void setup() {
 #endif
   delay(300);
 #ifdef SERIAL_DEBUG
-  Serial.println("Hello World!");
+  Serial.println("Hello world");
 #endif
 
-  mtrx = NeoDisplay::Initialize();
-  setHaltDisplay(mtrx);
+  matrix = NeoDisplay::Initialize();
+  setHaltDisplay(matrix);
 
-  BmpReader::Initialize(mtrx);
+  BmpReader::Initialize(matrix);
 
   isSuccess(SDReader::Initialize());
 
@@ -36,18 +36,25 @@ void setup() {
 void loop() {
   loadNextDirectory();
 
-  if (animConfig->type == 0) {
-    displayCurrentAnimation();
-  } else if (animConfig->type == 1) {
-    displayCurrentScrollText();
-  } else {
-    halt("Unsupported animation type");
+  switch (animConfig->type) {
+    case 0:
+      displayCurrentMFAnimation();
+      break;
+    case 1:
+      displayCurrentScrollText();
+      break;
+    case 2:
+      displayCurrentSFAnimation();
+      break;
+    default:
+      halt("Unsupported animation type");
   }
 }
 
 void loadMainConfig() {
   SDReader::SdFileStatus rootDir = SDReader::getRootDirectory();
   isSuccess(rootDir.status);
+
   ConfigManager::readConfigFile(rootDir.file, ConfigManager::ConfigType::main);
   config = ConfigManager::getMainConfig();
 }
@@ -62,7 +69,7 @@ void loadNextDirectory() {
   animConfig = ConfigManager::getAnimConfig();
 }
 
-void displayCurrentAnimation() {
+void displayCurrentMFAnimation() {
   finishAt = millis() + animConfig->length * 1000;
   millisPerFrame = 1000 / animConfig->fps;
 
@@ -78,6 +85,31 @@ void displayCurrentAnimation() {
       isSuccess(BmpReader::readBmp(curFrame.file));
 
       NeoDisplay::PushFrameOut();
+
+      while (frameFinishAt > millis())
+        ;
+
+      if (nextFrameStatus.hasReachedEnd)
+        break;
+    }
+  } while (finishAt > millis());
+}
+
+void displayCurrentSFAnimation() {
+  finishAt = millis() + animConfig->length * 1000;
+  millisPerFrame = 1000 / animConfig->fps;
+
+  do {
+    while (true) {
+      frameFinishAt = millis() + millisPerFrame;
+      Serial.println("Hello1");
+      SDReader::NextFileStatus nextFrameStatus = SDReader::selectNextFile();
+      isSuccess(nextFrameStatus.status);
+      Serial.println("Hello2");
+      SDReader::SdFileStatus curFrame = SDReader::getCurrentFile();
+      isSuccess(curFrame.status);
+
+      Serial.println("Hello3");
 
       while (frameFinishAt > millis())
         ;
@@ -110,7 +142,7 @@ void displayCurrentScrollText() {
         if (result.status == SD::ReadFileUntilStatus::error_read)
           break;
 
-        mtrx->scrollText(charBuffer, result.textRead, animConfig->fps);
+        matrix->scrollText(charBuffer, result.textRead, animConfig->fps);
       }
     }
   }

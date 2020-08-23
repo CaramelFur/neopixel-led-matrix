@@ -18,6 +18,10 @@ namespace ConfigManager {
         .fps = 2,
         .length = 10,
         .type = 0,
+        // Type can be:
+        // 0: Frames as seperate images
+        // 1: Scrolltext
+        // 2: Frames in one image?
     };
 
     char tempReader[tempReaderLength] = {};

@@ -1,17 +1,13 @@
 #include "halt.h"
 
-const uint8_t scrollSpeed = 50;
-
-Better_NeoMatrix* errorDisplay = 0;
-
-void printToDisplay(String message, bool onlyOnce) {
+void Halt::printToDisplay(String message, bool onlyOnce) {
   do {
     errorDisplay->scrollText(message.begin(), message.length(), scrollSpeed);
   } while (!onlyOnce);
 }
 
 // Stops execution and gives an error message
-void halt(String message, bool onlyOnce) {
+void Halt::halt(String message, bool onlyOnce) {
 #ifdef SERIAL_DEBUG
   Serial.print("Arduino halted with: ");
   Serial.println(message);
@@ -29,6 +25,6 @@ void halt(String message, bool onlyOnce) {
   }
 }
 
-void setHaltDisplay(Better_NeoMatrix* mat) {
+void Halt::setDisplay(Better_NeoMatrix* mat) {
   errorDisplay = mat;
 }

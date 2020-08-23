@@ -6,20 +6,19 @@ uint16_t millisPerFrame = 500;
 
 Better_NeoMatrix* mtrx;
 
-ConfigManager::ConfigHolder* config;
+ConfigManager::ConfigHolder* mainConfig;
 ConfigManager::AnimConfigHolder* animConfig;
 
 void setup() {
+  delay(300);
+
 #ifdef SERIAL_DEBUG
   Serial.begin(115200);
-#endif
-  delay(300);
-#ifdef SERIAL_DEBUG
   Serial.println("Hello World!");
 #endif
 
   mtrx = NeoDisplay::Initialize();
-  setHaltDisplay(mtrx);
+  Halt::setDisplay(mtrx);
 
   BmpReader::Initialize(mtrx);
 
@@ -27,9 +26,9 @@ void setup() {
 
   loadMainConfig();
 
-  NeoDisplay::SetDisplayBrightness(config->brightness);
+  NeoDisplay::SetDisplayBrightness(mainConfig->brightness);
 
-  if (config->testMode == 1)
+  if (mainConfig->testMode == 1)
     NeoDisplay::TestDisplay();
 }
 
@@ -41,7 +40,7 @@ void loop() {
   } else if (animConfig->type == 1) {
     displayCurrentScrollText();
   } else {
-    halt("Unsupported animation type");
+    Halt::halt("Unsupported animation type");
   }
 }
 
@@ -49,11 +48,11 @@ void loadMainConfig() {
   SDReader::SdFileStatus rootDir = SDReader::getRootDirectory();
   isSuccess(rootDir.status);
   ConfigManager::readConfigFile(rootDir.file, ConfigManager::ConfigType::main);
-  config = ConfigManager::getMainConfig();
+  mainConfig = ConfigManager::getMainConfig();
 }
 
 void loadNextDirectory() {
-  isSuccess(SDReader::selectNextDirectory(config->random));
+  isSuccess(SDReader::selectNextDirectory(mainConfig->random));
 
   SDReader::SdFileStatus curDir = SDReader::getCurrentDirectory();
   isSuccess(curDir.status);

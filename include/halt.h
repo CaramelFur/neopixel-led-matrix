@@ -4,6 +4,15 @@
 
 #pragma once
 
-void halt(String message, bool onlyOnce = false);
+class Halt
+{
+  private:
+    static const uint8_t scrollSpeed = 50;
+    static Better_NeoMatrix* errorDisplay;
 
-void setHaltDisplay(Better_NeoMatrix * mat);
+    static void printToDisplay(String message, bool onlyOnce);
+
+  public:
+    static void halt(String message, bool onlyOnce = false);
+    static void setDisplay(Better_NeoMatrix * mat);
+}
